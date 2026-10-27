@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   bibliographyBibUrl,
   bibliographyCslUrl,
+  exportUrl,
   getJob,
   isIncluded,
   isScreenedOut,
@@ -93,20 +94,37 @@ function BibliographyFooter({
           </li>
         ))}
       </ol>
-      <div className={styles.exportRow}>
+      <div className={styles.exportRow} role="group" aria-label="Exports">
+        <a className={styles.exportLink} href={exportUrl(jobId, "md")} download>
+          Markdown
+        </a>
+        <a
+          className={styles.exportLink}
+          href={exportUrl(jobId, "html")}
+          download
+        >
+          HTML
+        </a>
+        <a
+          className={styles.exportLink}
+          href={exportUrl(jobId, "docx")}
+          download
+        >
+          DOCX
+        </a>
         <a
           className={styles.exportLink}
           href={bibliographyBibUrl(jobId)}
           download
         >
-          Download BibTeX
+          BibTeX
         </a>
         <a
           className={styles.exportLink}
           href={bibliographyCslUrl(jobId)}
           download
         >
-          Download CSL-JSON
+          CSL-JSON
         </a>
       </div>
     </nav>
@@ -217,6 +235,35 @@ export default function ArticlePage({ params }: ArticlePageProps) {
                   ))}
                 </ul>
               </details>
+            ) : null}
+            {!(bibliography && bibliography.entries.length > 0) ? (
+              <div
+                className={styles.exportRow}
+                role="group"
+                aria-label="Article exports"
+              >
+                <a
+                  className={styles.exportLink}
+                  href={exportUrl(id, "md")}
+                  download
+                >
+                  Markdown
+                </a>
+                <a
+                  className={styles.exportLink}
+                  href={exportUrl(id, "html")}
+                  download
+                >
+                  HTML
+                </a>
+                <a
+                  className={styles.exportLink}
+                  href={exportUrl(id, "docx")}
+                  download
+                >
+                  DOCX
+                </a>
+              </div>
             ) : null}
           </>
         ) : (

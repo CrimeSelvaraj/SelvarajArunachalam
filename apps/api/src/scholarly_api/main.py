@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse, Response
 
 from scholarly_api import __version__
+from scholarly_api.export import ExportFormat, export_article, pandoc_available
 from scholarly_api.models import (
     CreateJobRequest,
     HealthResponse,
@@ -155,6 +156,53 @@ async def download_bibliography_csl(job_id: str) -> Response:
             "Content-Disposition": f'attachment; filename="{filename}"',
         },
     )
+
+
+def _export_response(job: JobRecord, fmt: ExportFormat) -> Response:
+    try:
+        result = export_article(job, fmt)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        # Missing pandoc or conversion failure
+        status = 503 if "not installed" in str(exc).lower() else 500
+        raise HTTPException(status_code=status, detail=str(exc)) from exc
+    return Response(
+        content=result.content,
+        media_type=result.media_type,
+        headers={
+            "Content-Disposition": f'attachment; filename="{result.filename}"',
+            "X-ProofPress-Export-Method": result.method,
+            "X-ProofPress-Pandoc": "1" if pandoc_available() else "0",
+        },
+    )
+
+
+@app.get("/jobs/{job_id}/export.md")
+async def export_markdown(job_id: str) -> Response:
+    """Download the article as Markdown (Phase 9 — pandoc/GFM when available)."""
+    job = await store.get(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return _export_response(job, "md")
+
+
+@app.get("/jobs/{job_id}/export.html")
+async def export_html(job_id: str) -> Response:
+    """Download the article as standalone HTML via pandoc (Phase 9)."""
+    job = await store.get(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return _export_response(job, "html")
+
+
+@app.get("/jobs/{job_id}/export.docx")
+async def export_docx(job_id: str) -> Response:
+    """Download the article as DOCX via pandoc (Phase 9)."""
+    job = await store.get(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return _export_response(job, "docx")
 
 
 def run() -> None:

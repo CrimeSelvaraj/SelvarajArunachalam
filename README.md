@@ -2,7 +2,7 @@
 
 Public web app where anyone enters a research topic and receives a **readable scholarly news article** grounded in open scholarship (OpenAlex, OA full text, public GitHub) — with transparent research progress and citation discipline.
 
-> **Status:** Phases 0–8 — monorepo scaffold, public shell with header/side nav, job API, **OpenAlex + GitHub discovery**, **ASReview-inspired screening**, **evidence pack + PaperQA adapter**, **article composer**, and **CSL-JSON / APA bibliography + BibTeX export**. Pandoc multi-format export remains for Phase 9.
+> **Status:** Phases 0–9 — monorepo scaffold, public shell with header/side nav, job API, **OpenAlex + GitHub discovery**, **ASReview-inspired screening**, **evidence pack + PaperQA adapter**, **article composer**, **CSL-JSON / APA bibliography + BibTeX**, and **Pandoc MD/HTML/DOCX export**. PDF export waits on TeX/typst (Phase 12).
 
 ## Monorepo layout
 
@@ -19,11 +19,12 @@ docs/             Product docs
 |------|--------|
 | **Node 22+** + **pnpm** | Frontend |
 | **Python 3.12+** + **[uv](https://docs.astral.sh/uv/)** | Backend (`paper-qa` included) |
-| **pandoc** | Export sidecar (cite stage probes `--citeproc`; full MD/HTML/DOCX in Phase 9) |
+| **pandoc** | **Required for HTML/DOCX export** (and preferred for Markdown normalize + `--citeproc`). Install the system binary — do **not** vendor the Haskell tree. PDF needs TeX or typst (not installed by default). |
 
 ```bash
-# pandoc (Debian/Ubuntu)
+# pandoc (Debian/Ubuntu) — required for Phase 9 export
 sudo apt-get update && sudo apt-get install -y pandoc
+pandoc --version   # expect 2.x / 3.x with citeproc
 
 # uv
 curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -61,6 +62,9 @@ pnpm dev
 | `GET` | `/jobs/{id}` | Poll status, events, `sources`, `screening`, `evidence`, `article`, `bibliography` |
 | `GET` | `/jobs/{id}/bibliography.bib` | Download BibTeX (after cite stage) |
 | `GET` | `/jobs/{id}/bibliography.json` | Download canonical CSL-JSON |
+| `GET` | `/jobs/{id}/export.md` | Download article Markdown (pandoc GFM when available) |
+| `GET` | `/jobs/{id}/export.html` | Download standalone HTML via pandoc |
+| `GET` | `/jobs/{id}/export.docx` | Download DOCX via pandoc |
 
 **Search stage (real):**
 
@@ -97,6 +101,13 @@ pnpm dev
 - Canonical **CSL-JSON** stored on `job.bibliography`
 - **APA** reference lines aligned 1:1 with inline `[n]` markers
 - **BibTeX** download via `GET /jobs/{id}/bibliography.bib`
+
+**Export (real, Phase 9):**
+
+- Article page download buttons: **Markdown**, **HTML**, **DOCX** (+ BibTeX / CSL-JSON)
+- Server calls the system **pandoc** CLI (`export.py`); HTML/DOCX prefer `--citeproc` with CSL-JSON and fall back to embedded APA References
+- Markdown keeps numeric `[n]` markers and the Phase 8 References appendix
+- PDF is out of scope until TeX or typst is installed
 
 ### Options
 

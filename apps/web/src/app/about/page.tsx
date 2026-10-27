@@ -28,7 +28,7 @@ export default function AboutPage() {
           </li>
           <li>
             <strong>Draft & cite</strong> — news lede + claim→source map, then
-            bibliography and Pandoc export.
+            bibliography and Pandoc MD/HTML/DOCX export.
           </li>
         </ol>
         <p className={styles.body}>

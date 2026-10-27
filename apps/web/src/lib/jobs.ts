@@ -270,6 +270,13 @@ export function bibliographyCslUrl(jobId: string): string {
   return `${API_BASE}/jobs/${jobId}/bibliography.json`;
 }
 
+/** Pandoc export downloads (Phase 9 — MD / HTML / DOCX). */
+export type ExportFormat = "md" | "html" | "docx";
+
+export function exportUrl(jobId: string, format: ExportFormat): string {
+  return `${API_BASE}/jobs/${jobId}/export.${format}`;
+}
+
 export const STAGE_LABELS: Record<JobStage, string> = {
   queued: "Queued",
   search: "Search",
