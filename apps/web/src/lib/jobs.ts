@@ -37,7 +37,21 @@ export type SourceWork = {
   landing_url: string | null;
   cited_by_count: number | null;
   source_type: string;
+  github_full_name?: string | null;
+  html_url?: string | null;
+  stars?: number | null;
+  license_spdx?: string | null;
+  readme_snippet?: string | null;
+  citation_cff?: string | null;
 };
+
+export function sourceKey(source: SourceWork): string {
+  return source.openalex_id || source.github_full_name || source.title;
+}
+
+export function isSoftwareSource(source: SourceWork): boolean {
+  return source.source_type === "software";
+}
 
 export type JobRecord = {
   id: string;

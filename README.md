@@ -2,13 +2,13 @@
 
 Public web app where anyone enters a research topic and receives a **readable scholarly news article** grounded in open scholarship (OpenAlex, OA full text, public GitHub) — with transparent research progress and citation discipline.
 
-> **Status:** Phases 0–3 — monorepo scaffold, public shell with header/side nav, job API, and **real OpenAlex discovery**. Screening / PaperQA / compose / export remain stubbed.
+> **Status:** Phases 0–4 — monorepo scaffold, public shell with header/side nav, job API, **OpenAlex + GitHub discovery**. Screening / PaperQA / compose / export remain stubbed.
 
 ## Monorepo layout
 
 ```
 apps/web          Next.js (App Router) public site
-apps/api          FastAPI job orchestrator + OpenAlex client
+apps/api          FastAPI job orchestrator + discovery clients
 packages/shared   Shared types / contracts (placeholder)
 docs/             Product docs
 ```
@@ -34,6 +34,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 ```bash
 cp .env.example .env
 # set OPENALEX_MAILTO to a real contact email when possible
+# optional GITHUB_TOKEN for higher GitHub search rate limits
 
 # API (terminal 1)
 cd apps/api
@@ -58,7 +59,10 @@ pnpm dev
 | `GET` | `/jobs` | Recent jobs (in-memory, newest first) |
 | `GET` | `/jobs/{id}` | Poll status, events, and `sources` |
 
-**Search stage (real):** thin HTTP client → `GET https://api.openalex.org/works?search=…&mailto=…` with a polite `User-Agent`. Results are mapped to `sources[]` on the job (title, authors, year, DOI/OpenAlex id, abstract snippet, OA/PDF hints).
+**Search stage (real):**
+
+- **OpenAlex** — `GET https://api.openalex.org/works?search=…&mailto=…` with a polite `User-Agent`. Works map to `sources[]` with `source_type=work`.
+- **GitHub** (when `options.include_github` is true, default) — repository search plus README and `CITATION.cff` when present. Repos map to `sources[]` with `source_type=software` (stars, license, truncated README/CFF).
 
 Later stages (**screen → read → draft → cite**) are still stubbed delays.
 
@@ -72,6 +76,18 @@ Accept: application/json
 
 Optional: `api_key=<OPENALEX_API_KEY>` for a dedicated daily budget.
 
+### GitHub call shape
+
+```http
+GET https://api.github.com/search/repositories?q=<topic>+in:name,description,readme&sort=stars&order=desc&per_page=5
+Authorization: Bearer <GITHUB_TOKEN>   # optional but recommended
+Accept: application/vnd.github+json
+X-GitHub-Api-Version: 2022-11-28
+User-Agent: ProofPress/0.3 (+https://github.com/CrimeSelvaraj/SelvarajArunachalam)
+```
+
+Per repo (when enriching candidates): `GET /repos/{owner}/{repo}/readme` and `GET /repos/{owner}/{repo}/contents/CITATION.cff`.
+
 ## Environment variables
 
 See [`.env.example`](.env.example).
@@ -80,8 +96,9 @@ See [`.env.example`](.env.example).
 |----------|----------|---------|
 | `OPENALEX_MAILTO` | Recommended | Contact email in User-Agent / `mailto` query (OpenAlex polite use) |
 | `OPENALEX_API_KEY` | Optional | Higher OpenAlex budget |
+| `GITHUB_TOKEN` | Optional | GitHub REST search/API rate limits (60/hr unauthenticated vs 5000/hr with token) |
 | `API_ORIGIN` | For web | FastAPI origin for Next rewrites |
-| LLM / GitHub / Crossref keys | Later phases | Not used yet |
+| LLM / Crossref keys | Later phases | Not used yet |
 
 ## License
 

@@ -30,6 +30,43 @@
   align-items: stretch;
 }
 
+.optionsRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin-top: 0.15rem;
+}
+
+.optionsToggle {
+  border: 0;
+  background: transparent;
+  color: var(--foam-muted);
+  font-size: 0.82rem;
+  padding: 0.25rem 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(168, 184, 174, 0.35);
+}
+
+.optionsToggle:hover:not(:disabled) {
+  color: var(--foam);
+}
+
+.optionCheck {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.82rem;
+  color: var(--foam-muted);
+  cursor: pointer;
+}
+
+.optionCheck input {
+  accent-color: var(--moss-bright);
+}
+
 .input {
   flex: 1;
   min-width: 0;
@@ -183,15 +220,27 @@
   line-height: 1.45;
 }
 
+.sourcesPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid rgba(232, 240, 235, 0.1);
+  max-height: min(48vh, 26rem);
+  overflow: auto;
+  padding-right: 0.25rem;
+}
+
+.sourcesSummary {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--foam-muted);
+}
+
 .sources {
   display: flex;
   flex-direction: column;
   gap: 0.7rem;
-  padding-top: 0.35rem;
-  border-top: 1px solid rgba(232, 240, 235, 0.1);
-  max-height: min(42vh, 22rem);
-  overflow: auto;
-  padding-right: 0.25rem;
 }
 
 .sourcesHeading {
@@ -230,6 +279,27 @@
   gap: 0.2rem;
 }
 
+.kindBadge {
+  align-self: flex-start;
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.12rem 0.4rem;
+  border-radius: 4px;
+  border: 1px solid rgba(232, 240, 235, 0.12);
+  color: var(--foam-muted);
+}
+
+.kindBadge[data-kind="work"] {
+  color: var(--moss-bright);
+  border-color: rgba(63, 143, 114, 0.35);
+}
+
+.kindBadge[data-kind="software"] {
+  color: var(--amber-soft);
+  border-color: rgba(212, 168, 87, 0.35);
+}
+
 .sourceTitle {
   color: var(--foam);
   font-size: 0.95rem;
@@ -266,6 +336,29 @@ a.sourceTitle:hover {
 
 .flag[data-kind="pdf"] {
   color: var(--amber-soft);
+}
+
+.flag[data-kind="license"] {
+  color: var(--moss-bright);
+}
+
+.flag[data-kind="cff"] {
+  color: var(--amber-soft);
+}
+
+.cffSnippet {
+  margin: 0.15rem 0 0;
+  padding: 0.45rem 0.55rem;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: rgba(168, 184, 174, 0.95);
+  background: rgba(8, 12, 10, 0.55);
+  border: 1px solid rgba(232, 240, 235, 0.08);
+  border-radius: 6px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 5.5rem;
+  overflow: auto;
 }
 
 a.flag:hover {
