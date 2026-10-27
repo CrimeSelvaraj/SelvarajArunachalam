@@ -10,10 +10,13 @@ export type JobStage =
 
 export type JobStatus = "pending" | "running" | "completed" | "failed";
 
+export type ScreenDecision = "include" | "exclude" | "duplicate";
+
 export type JobOptions = {
   depth?: string;
   include_github?: boolean;
   citation_style?: string;
+  screen_max?: number | null;
 };
 
 export type JobEvent = {
@@ -43,6 +46,19 @@ export type SourceWork = {
   license_spdx?: string | null;
   readme_snippet?: string | null;
   citation_cff?: string | null;
+  relevance_score?: number | null;
+  screen_decision?: ScreenDecision | null;
+  screen_rationale?: string | null;
+  duplicate_of?: string | null;
+};
+
+export type ScreeningSummary = {
+  method: string;
+  max_include: number;
+  included_count: number;
+  excluded_count: number;
+  duplicate_count: number;
+  candidate_count: number;
 };
 
 export function sourceKey(source: SourceWork): string {
@@ -51,6 +67,17 @@ export function sourceKey(source: SourceWork): string {
 
 export function isSoftwareSource(source: SourceWork): boolean {
   return source.source_type === "software";
+}
+
+export function isIncluded(source: SourceWork): boolean {
+  return source.screen_decision === "include";
+}
+
+export function isScreenedOut(source: SourceWork): boolean {
+  return (
+    source.screen_decision === "exclude" ||
+    source.screen_decision === "duplicate"
+  );
 }
 
 export type JobRecord = {
@@ -62,6 +89,7 @@ export type JobRecord = {
   progress: number;
   events: JobEvent[];
   sources: SourceWork[];
+  screening?: ScreeningSummary | null;
   article_id: string | null;
   error: string | null;
   created_at: string;
@@ -74,17 +102,29 @@ export async function createJob(
   topic: string,
   options: JobOptions = {},
 ): Promise<JobRecord> {
+  const body: {
+    topic: string;
+    options: {
+      depth: string;
+      include_github: boolean;
+      citation_style: string;
+      screen_max?: number;
+    };
+  } = {
+    topic,
+    options: {
+      depth: options.depth ?? "quick",
+      include_github: options.include_github ?? true,
+      citation_style: options.citation_style ?? "apa",
+    },
+  };
+  if (options.screen_max != null) {
+    body.options.screen_max = options.screen_max;
+  }
   const res = await fetch(`${API_BASE}/jobs`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      topic,
-      options: {
-        depth: options.depth ?? "quick",
-        include_github: options.include_github ?? true,
-        citation_style: options.citation_style ?? "apa",
-      },
-    }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) {
     const detail = await res.text();

@@ -28,10 +28,34 @@ class JobStatus(str, Enum):
 class JobOptions(BaseModel):
     depth: str = Field(
         default="quick",
-        description="quick | deep — controls OpenAlex result count in Phase 3",
+        description="quick | deep — controls OpenAlex result count and screen cap",
     )
     include_github: bool = True
     citation_style: str = Field(default="apa", description="apa | nature | news")
+    screen_max: int | None = Field(
+        default=None,
+        ge=4,
+        le=40,
+        description="Cap on sources included for deep read (default: 12 quick / 18 deep)",
+    )
+
+
+class ScreenDecision(str, Enum):
+    include = "include"
+    exclude = "exclude"
+    duplicate = "duplicate"
+
+
+class ScreeningSummary(BaseModel):
+    method: str = Field(
+        default="heuristic",
+        description="heuristic | llm:<model> — ranking method used",
+    )
+    max_include: int = 12
+    included_count: int = 0
+    excluded_count: int = 0
+    duplicate_count: int = 0
+    candidate_count: int = 0
 
 
 class CreateJobRequest(BaseModel):
@@ -72,6 +96,11 @@ class SourceWork(BaseModel):
     license_spdx: str | None = None
     readme_snippet: str | None = None
     citation_cff: str | None = None
+    # Screening (Phase 5 — ASReview-inspired)
+    relevance_score: float | None = None
+    screen_decision: ScreenDecision | None = None
+    screen_rationale: str | None = None
+    duplicate_of: str | None = None
 
 
 class JobRecord(BaseModel):
@@ -83,6 +112,7 @@ class JobRecord(BaseModel):
     progress: float = Field(ge=0.0, le=1.0)
     events: list[JobEvent] = Field(default_factory=list)
     sources: list[SourceWork] = Field(default_factory=list)
+    screening: ScreeningSummary | None = None
     article_id: str | None = None
     error: str | None = None
     created_at: datetime

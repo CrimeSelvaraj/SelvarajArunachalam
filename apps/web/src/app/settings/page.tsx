@@ -14,11 +14,18 @@ export default function SettingsPage() {
           cluttering the landing hero.
         </p>
         <ul className={styles.list}>
-          <li>Depth — quick (8 works) / deep (12 works) via OpenAlex</li>
+          <li>
+            Depth — quick (8 works, screen cap 12) / deep (12 works, screen
+            cap 18)
+          </li>
           <li>Citation style — APA / Nature / news (composer later)</li>
           <li>
             Include GitHub — toggle under Research options on the landing composer
             (default on; capped repo search with README + CITATION.cff)
+          </li>
+          <li>
+            Screen max — optional override (4–40) for deep-read inclusion cap;
+            heuristic ranker, optional LLM when a key is set
           </li>
         </ul>
         <Link href="/" className={styles.link}>

@@ -1,4 +1,4 @@
-"""Research job pipeline — OpenAlex + GitHub discovery; later stages stubbed."""
+"""Research job pipeline — discovery + screening; later stages stubbed."""
 
 from __future__ import annotations
 
@@ -10,14 +10,14 @@ import httpx
 from scholarly_api.github_client import search_repositories
 from scholarly_api.models import JobEvent, JobStage, JobStatus, SourceWork
 from scholarly_api.openalex import search_works
+from scholarly_api.screening import screen_sources
 from scholarly_api.store import JobStore
 
-# Post-discovery stages remain simulated until Phases 5–8.
-STUB_AFTER_SEARCH: list[tuple[JobStage, str, float, float]] = [
-    (JobStage.screen, "Screening and ranking sources by relevance… (stub)", 0.35, 0.7),
-    (JobStage.read, "Reading open-access abstracts and evidence snippets… (stub)", 0.55, 0.8),
-    (JobStage.draft, "Drafting a scholarly news narrative… (stub)", 0.78, 0.7),
-    (JobStage.cite, "Attaching citations and bibliography stubs… (stub)", 0.92, 0.5),
+# Post-screening stages remain simulated until Phases 6–8.
+STUB_AFTER_SCREEN: list[tuple[JobStage, str, float, float]] = [
+    (JobStage.read, "Reading open-access abstracts and evidence snippets… (stub)", 0.55, 0.7),
+    (JobStage.draft, "Drafting a scholarly news narrative… (stub)", 0.78, 0.6),
+    (JobStage.cite, "Attaching citations and bibliography stubs… (stub)", 0.92, 0.45),
 ]
 
 
@@ -43,7 +43,11 @@ async def run_pipeline(store: JobStore, job_id: str) -> None:
             stage=JobStage.search,
             message="Searching OpenAlex and GitHub for candidate sources…",
             at=_now(),
-            meta={"providers": ["openalex", "github"] if job.options.include_github else ["openalex"]},
+            meta={
+                "providers": (
+                    ["openalex", "github"] if job.options.include_github else ["openalex"]
+                )
+            },
         )
     )
     job.updated_at = _now()
@@ -55,7 +59,9 @@ async def run_pipeline(store: JobStore, job_id: str) -> None:
             return
 
         include_github = job.options.include_github
-        openalex_task = asyncio.create_task(search_works(job.topic, depth=job.options.depth))
+        openalex_task = asyncio.create_task(
+            search_works(job.topic, depth=job.options.depth)
+        )
         github_task = (
             asyncio.create_task(search_repositories(job.topic))
             if include_github
@@ -135,7 +141,50 @@ async def run_pipeline(store: JobStore, job_id: str) -> None:
         job.updated_at = _now()
         await store.update(job)
 
-        for stage, message, progress, delay in STUB_AFTER_SEARCH:
+        # --- Phase 5: screening (ASReview-inspired) ---
+        job = await store.get(job_id)
+        if job is None:
+            return
+        job.stage = JobStage.screen
+        job.progress = 0.32
+        job.events.append(
+            JobEvent(
+                stage=JobStage.screen,
+                message="Screening candidates — ranking, deduping, capping for deep read…",
+                at=_now(),
+                meta={"candidates": len(job.sources)},
+            )
+        )
+        job.updated_at = _now()
+        await store.update(job)
+
+        job = await store.get(job_id)
+        if job is None:
+            return
+
+        screened, summary = await screen_sources(job.topic, job.sources, job.options)
+        job.sources = screened
+        job.screening = summary
+        job.progress = 0.42
+        job.events.append(
+            JobEvent(
+                stage=JobStage.screen,
+                message=(
+                    f"Screened {summary.candidate_count} candidates via {summary.method}: "
+                    f"{summary.included_count} included, "
+                    f"{summary.excluded_count} excluded, "
+                    f"{summary.duplicate_count} duplicate"
+                    f"{'' if summary.duplicate_count == 1 else 's'} "
+                    f"(deep-read cap {summary.max_include})."
+                ),
+                at=_now(),
+                meta=summary.model_dump(),
+            )
+        )
+        job.updated_at = _now()
+        await store.update(job)
+
+        for stage, message, progress, delay in STUB_AFTER_SCREEN:
             await asyncio.sleep(delay)
             job = await store.get(job_id)
             if job is None:
@@ -148,7 +197,7 @@ async def run_pipeline(store: JobStore, job_id: str) -> None:
             job.updated_at = _now()
             await store.update(job)
 
-        await asyncio.sleep(0.4)
+        await asyncio.sleep(0.35)
         job = await store.get(job_id)
         if job is None:
             return
@@ -156,23 +205,28 @@ async def run_pipeline(store: JobStore, job_id: str) -> None:
         job.status = JobStatus.completed
         job.progress = 1.0
         job.article_id = job.id
-        work_n = sum(1 for s in job.sources if s.source_type == "work")
-        soft_n = sum(1 for s in job.sources if s.source_type == "software")
+        included = [
+            s for s in job.sources if s.screen_decision and s.screen_decision.value == "include"
+        ]
+        work_n = sum(1 for s in included if s.source_type == "work")
+        soft_n = sum(1 for s in included if s.source_type == "software")
         job.events.append(
             JobEvent(
                 stage=JobStage.complete,
                 message=(
-                    f"Discovery complete — {work_n} paper"
+                    f"Screening complete — {work_n} paper"
                     f"{'' if work_n == 1 else 's'}"
                     f" and {soft_n} software repo"
-                    f"{'' if soft_n == 1 else 's'} saved. "
-                    "Screening, PaperQA evidence, and composition arrive in later phases."
+                    f"{'' if soft_n == 1 else 's'} selected for deep read. "
+                    "PaperQA evidence and composition arrive in later phases."
                 ),
                 at=_now(),
                 meta={
                     "sources": len(job.sources),
-                    "works": work_n,
-                    "software": soft_n,
+                    "included": len(included),
+                    "works_included": work_n,
+                    "software_included": soft_n,
+                    "screening": job.screening.model_dump() if job.screening else None,
                 },
             )
         )

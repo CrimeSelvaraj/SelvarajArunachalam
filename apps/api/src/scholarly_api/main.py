@@ -80,9 +80,9 @@ async def create_job(body: CreateJobRequest) -> JobRecord:
             JobEvent(
                 stage=JobStage.queued,
                 message=(
-                    "Job queued — OpenAlex and GitHub discovery will run next."
+                    "Job queued — discovery then ASReview-inspired screening."
                     if body.options.include_github
-                    else "Job queued — OpenAlex discovery will run next."
+                    else "Job queued — OpenAlex discovery then screening."
                 ),
                 at=now,
                 meta={
@@ -90,7 +90,8 @@ async def create_job(body: CreateJobRequest) -> JobRecord:
                         ["openalex", "github"]
                         if body.options.include_github
                         else ["openalex"]
-                    )
+                    ),
+                    "screen_max": body.options.screen_max,
                 },
             )
         ],
