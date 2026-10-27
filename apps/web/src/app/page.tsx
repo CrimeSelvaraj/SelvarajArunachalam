@@ -17,9 +17,9 @@ export default function HomePage() {
           <span className={styles.headlineBreak}> grounded in open research.</span>
         </h1>
         <p className={styles.lede}>
-          Enter a topic. We discover candidates, screen for relevance, then
-          build an evidence pack (OA text + PaperQA when keyed) before drafting
-          — not an uncited essay.
+          Enter a topic. We discover, screen, pack evidence, then compose a
+          scholarly news article with claim→source citations — not an uncited
+          essay.
         </p>
         <TopicComposer />
       </section>

@@ -2,13 +2,13 @@
 
 Public web app where anyone enters a research topic and receives a **readable scholarly news article** grounded in open scholarship (OpenAlex, OA full text, public GitHub) — with transparent research progress and citation discipline.
 
-> **Status:** Phases 0–6 — monorepo scaffold, public shell with header/side nav, job API, **OpenAlex + GitHub discovery**, **ASReview-inspired screening**, and **evidence pack + PaperQA adapter**. Article compose / citations / export remain stubbed.
+> **Status:** Phases 0–7 — monorepo scaffold, public shell with header/side nav, job API, **OpenAlex + GitHub discovery**, **ASReview-inspired screening**, **evidence pack + PaperQA adapter**, and **article composer** (LLM or heuristic). Citation CSL/BibTeX polish and pandoc export remain for later phases.
 
 ## Monorepo layout
 
 ```
 apps/web          Next.js (App Router) public site
-apps/api          FastAPI job orchestrator + discovery + screening + evidence
+apps/api          FastAPI job orchestrator + discovery + screening + evidence + compose
 packages/shared   Shared types / contracts (placeholder)
 docs/             Product docs
 ```
@@ -35,7 +35,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 cp .env.example .env
 # set OPENALEX_MAILTO to a real contact email when possible
 # optional GITHUB_TOKEN for higher GitHub search rate limits
-# optional OPENAI_API_KEY for LLM screening + PaperQA (else heuristics / pack-only)
+# optional OPENAI_API_KEY for LLM screening + PaperQA + compose (else heuristics)
 
 # API (terminal 1)
 cd apps/api
@@ -58,7 +58,7 @@ pnpm dev
 |--------|------|---------|
 | `POST` | `/jobs` | Create job `{ topic, options? }` |
 | `GET` | `/jobs` | Recent jobs (in-memory, newest first) |
-| `GET` | `/jobs/{id}` | Poll status, events, `sources`, `screening`, `evidence` |
+| `GET` | `/jobs/{id}` | Poll status, events, `sources`, `screening`, `evidence`, `article` |
 
 **Search stage (real):**
 
@@ -82,7 +82,14 @@ pnpm dev
 - Persists quote-level `evidence.quotes[]` with `source_id` plus `evidence.findings[]` on the job
 - If `OPENAI_API_KEY` (or other PaperQA LLM keys) is missing: pack is still built; PaperQA is marked `paperqa_skipped` with heuristic excerpts
 
-Later stages (**draft → cite**) are still stubbed delays.
+**Draft stage (real, Phase 7):**
+
+- Composes a scholarly news article (lede, body, why it matters, limitations)
+- Enforces a **claim→source map**; refuses unsupported sensational claims
+- Prefers LLM compose when `OPENAI_API_KEY` (or compatible) is set; otherwise a readable **heuristic template** from evidence quotes/findings
+- Persists `article` (`markdown`, `html`, `claims`, `sections`) on the job; `/a/[id]` renders HTML with inline `[n]` citation markers
+
+**Cite stage:** light stub (markers already inline; full CSL/BibTeX in Phase 8).
 
 ### Options
 
@@ -107,8 +114,9 @@ See [`.env.example`](.env.example).
 | `OPENALEX_MAILTO` | Recommended | Contact email in User-Agent / `mailto` query |
 | `OPENALEX_API_KEY` | Optional | Higher OpenAlex budget |
 | `GITHUB_TOKEN` | Optional | GitHub REST rate limits |
-| `OPENAI_API_KEY` | Optional | LLM screening re-rank **and** PaperQA (heuristic / pack-only fallback) |
+| `OPENAI_API_KEY` | Optional | LLM screening + PaperQA + article compose (heuristic fallbacks) |
 | `SCREENING_LLM_MODEL` | Optional | Default `gpt-4o-mini` |
+| `COMPOSE_LLM_MODEL` | Optional | Article composer model (defaults to screening model / `gpt-4o-mini`) |
 | `PAPERQA_LLM` | Optional | Override PaperQA answer LLM |
 | `PAPERQA_SUMMARY_LLM` | Optional | Override PaperQA summary LLM |
 | `PAPERQA_EMBEDDING` | Optional | Override embedding model |

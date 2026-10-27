@@ -14,6 +14,7 @@ import {
   shortSourceTitle,
   sourceById,
   sourceKey,
+  type ComposedArticle,
   type EvidenceFinding,
   type EvidenceQuote,
   type JobRecord,
@@ -298,6 +299,39 @@ function EvidencePanel({
   );
 }
 
+function excerptText(text: string, max = 320): string {
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max - 1);
+  const at = cut.lastIndexOf(" ");
+  return `${at > 80 ? cut.slice(0, at) : cut}…`;
+}
+
+function ArticlePreview({ article }: { article: ComposedArticle }) {
+  return (
+    <div className={styles.articlePreview}>
+      <p className={styles.sourcesHeading}>Composed article</p>
+      <p className={styles.evidenceMeta}>
+        {article.status} · {article.method} · {article.claims.length} claim
+        {article.claims.length === 1 ? "" : "s"}
+        {article.refused_claims.length
+          ? ` · ${article.refused_claims.length} refused`
+          : ""}
+      </p>
+      <p className={styles.articleTitle}>{article.title}</p>
+      {article.sections.slice(0, 2).map((section) => (
+        <div key={section.key} className={styles.articleSection}>
+          {section.heading ? (
+            <p className={styles.articleSectionHeading}>{section.heading}</p>
+          ) : null}
+          <p className={styles.articleExcerpt}>
+            {excerptText(section.markdown)}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function TopicComposer() {
   const router = useRouter();
   const [topic, setTopic] = useState("");
@@ -387,13 +421,16 @@ export function TopicComposer() {
 
   const progressLabel =
     phase === "done"
-      ? job?.evidence
-        ? "Evidence pack ready"
-        : job?.screening
-          ? "Screening complete"
-          : "Discovery complete"
+      ? job?.article
+        ? "Article ready"
+        : job?.evidence
+          ? "Evidence pack ready"
+          : job?.screening
+            ? "Screening complete"
+            : "Discovery complete"
       : "Research progress";
   const evidence = job?.evidence ?? null;
+  const composed = job?.article ?? null;
 
   return (
     <div className={styles.composer}>
@@ -490,7 +527,13 @@ export function TopicComposer() {
 
           {sources.length > 0 ? (
             <div className={styles.sourcesPanel}>
-              {evidence ? (
+              {composed ? (
+                <p className={styles.sourcesSummary}>
+                  Article · {composed.status} · {composed.method} ·{" "}
+                  {composed.claims.length} claim
+                  {composed.claims.length === 1 ? "" : "s"}
+                </p>
+              ) : evidence ? (
                 <p className={styles.sourcesSummary}>
                   Evidence · {evidence.file_count} file
                   {evidence.file_count === 1 ? "" : "s"} ({evidence.pdf_count}{" "}
@@ -520,7 +563,9 @@ export function TopicComposer() {
                 </p>
               )}
 
-              {evidence ? (
+              {composed ? <ArticlePreview article={composed} /> : null}
+
+              {evidence && !composed ? (
                 <EvidencePanel
                   findings={evidence.findings}
                   quotes={evidence.quotes}
@@ -582,7 +627,7 @@ export function TopicComposer() {
                 })
               }
             >
-              Open article placeholder
+              {job.article ? "Read article" : "Open article"}
             </button>
           ) : null}
         </div>

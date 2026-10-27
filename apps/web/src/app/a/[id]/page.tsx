@@ -1,15 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-  findingLabel,
   getJob,
   isIncluded,
   isScreenedOut,
   isSoftwareSource,
-  shortSourceTitle,
-  sourceById,
   sourceKey,
   type JobRecord,
   type SourceWork,
@@ -55,13 +52,6 @@ function CandidateItem({ source }: { source: SourceWork }) {
       {source.relevance_score != null
         ? ` · ${Math.round(source.relevance_score * 100)}%`
         : ""}
-      {source.evidence_files && source.evidence_files.length > 0 ? (
-        <span className={styles.evidenceFiles}>
-          {" "}
-          · {source.evidence_files.length} file
-          {source.evidence_files.length === 1 ? "" : "s"}
-        </span>
-      ) : null}
       {source.screen_rationale ? (
         <span className={styles.reason}>{source.screen_rationale}</span>
       ) : null}
@@ -69,7 +59,15 @@ function CandidateItem({ source }: { source: SourceWork }) {
   );
 }
 
-export default function ArticlePlaceholderPage({ params }: ArticlePageProps) {
+function citedSources(job: JobRecord): SourceWork[] {
+  const included = job.sources.filter(isIncluded);
+  const pool = included.length ? included : job.sources;
+  const works = pool.filter((s) => !isSoftwareSource(s));
+  const software = pool.filter((s) => isSoftwareSource(s));
+  return [...works, ...software];
+}
+
+export default function ArticlePage({ params }: ArticlePageProps) {
   const { id } = use(params);
   const [job, setJob] = useState<JobRecord | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -90,67 +88,50 @@ export default function ArticlePlaceholderPage({ params }: ArticlePageProps) {
     };
   }, [id]);
 
+  const article = job?.article ?? null;
   const included = job?.sources.filter(isIncluded) ?? [];
   const screenedOut = job?.sources.filter(isScreenedOut) ?? [];
   const hasScreening = (job?.sources ?? []).some((s) => s.screen_decision);
-  const papers =
-    job?.sources.filter((s) => !isSoftwareSource(s) && !hasScreening) ?? [];
-  const repos =
-    job?.sources.filter((s) => isSoftwareSource(s) && !hasScreening) ?? [];
-  const evidence = job?.evidence ?? null;
+  const refs = useMemo(() => (job ? citedSources(job) : []), [job]);
 
   return (
     <main className={styles.page}>
       <div className={styles.backdrop} aria-hidden />
       <article className={styles.article}>
-        <p className={styles.kicker}>Article placeholder</p>
-        <h1 className={styles.title}>
-          {job?.topic ?? "Draft arrives in later phases"}
-        </h1>
-        <p className={styles.body}>
-          Job <code className={styles.code}>{id}</code> finished discovery,
-          screening, and evidence packing. The composed narrative lands in Phase
-          7.
-        </p>
-        {error ? <p className={styles.body}>{error}</p> : null}
-
-        {evidence ? (
-          <div className={styles.evidenceBlock}>
-            <h2 className={styles.sectionTitle}>Evidence pack</h2>
-            <p className={styles.candidateSummary}>
-              {evidence.status} · {evidence.method} · {evidence.file_count} files
-              ({evidence.pdf_count} PDF · {evidence.text_count} text) ·{" "}
-              {evidence.quotes.length} quotes
+        {article ? (
+          <>
+            <p className={styles.kicker}>
+              Scholarly news
+              {article.status === "heuristic"
+                ? " · heuristic compose"
+                : article.status === "ready"
+                  ? ` · ${article.method}`
+                  : ` · ${article.status}`}
             </p>
-            {evidence.skip_reason ? (
-              <p className={styles.skipReason}>{evidence.skip_reason}</p>
+            <h1 className={styles.title}>{article.title}</h1>
+            {article.skip_reason ? (
+              <p className={styles.composeNote}>{article.skip_reason}</p>
             ) : null}
-            {evidence.findings.length > 0 ? (
-              <ul className={styles.findingList}>
-                {evidence.findings.map((finding) => (
-                  <li key={finding.key}>
-                    <strong className={styles.findingKey}>
-                      {findingLabel(finding.key)}
-                    </strong>
-                    <p className={styles.findingAnswer}>{finding.answer}</p>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-            {evidence.quotes.length > 0 ? (
-              <ul className={styles.quoteList}>
-                {evidence.quotes.map((quote) => {
-                  const source = sourceById(job?.sources ?? [], quote.source_id);
-                  const title = shortSourceTitle(source, quote.source_id);
-                  const href = source
-                    ? isSoftwareSource(source)
+            <div
+              className={styles.prose}
+              dangerouslySetInnerHTML={{ __html: article.html }}
+            />
+            {refs.length > 0 ? (
+              <nav className={styles.refNav} aria-label="Sources">
+                <h2 className={styles.sectionTitle}>Citation markers</h2>
+                <ol className={styles.refList}>
+                  {refs.map((source, index) => {
+                    const n = index + 1;
+                    const software = isSoftwareSource(source);
+                    const href = software
                       ? source.html_url || source.landing_url
-                      : source.landing_url || source.doi
-                    : undefined;
-                  return (
-                    <li key={quote.id} className={styles.quoteItem}>
-                      <blockquote>{quote.quote}</blockquote>
-                      <span className={styles.quoteSource}>
+                      : source.landing_url || source.doi;
+                    const title = software
+                      ? source.github_full_name || source.title
+                      : source.title;
+                    return (
+                      <li key={sourceKey(source)} id={`ref-${n}`}>
+                        <span className={styles.refNum}>[{n}]</span>{" "}
                         {href ? (
                           <a href={href} target="_blank" rel="noreferrer">
                             {title}
@@ -158,85 +139,87 @@ export default function ArticlePlaceholderPage({ params }: ArticlePageProps) {
                         ) : (
                           title
                         )}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
+                        {source.year ? ` (${source.year})` : ""}
+                      </li>
+                    );
+                  })}
+                </ol>
+                <p className={styles.citeStub}>
+                  Full CSL / BibTeX bibliography polish arrives in Phase 8.
+                </p>
+              </nav>
             ) : null}
-          </div>
-        ) : null}
+            {article.refused_claims.length > 0 ? (
+              <details className={styles.refused}>
+                <summary>
+                  Refused unsupported / sensational claims (
+                  {article.refused_claims.length})
+                </summary>
+                <ul>
+                  {article.refused_claims.map((claim, i) => (
+                    <li key={`${i}-${claim.slice(0, 24)}`}>{claim}</li>
+                  ))}
+                </ul>
+              </details>
+            ) : null}
+          </>
+        ) : (
+          <>
+            <p className={styles.kicker}>Article</p>
+            <h1 className={styles.title}>
+              {job?.topic ?? "Loading article…"}
+            </h1>
+            <p className={styles.body}>
+              Job <code className={styles.code}>{id}</code>
+              {job?.status === "completed"
+                ? " finished without a composed article."
+                : job
+                  ? ` is ${job.status} (${job.stage}).`
+                  : " — fetching…"}
+            </p>
+          </>
+        )}
+        {error ? <p className={styles.body}>{error}</p> : null}
 
-        {job ? (
+        {job && hasScreening ? (
           <div className={styles.candidates}>
             {job.screening ? (
               <p className={styles.candidateSummary}>
                 {job.screening.included_count} included ·{" "}
                 {job.screening.excluded_count} excluded ·{" "}
-                {job.screening.duplicate_count} duplicates · cap{" "}
-                {job.screening.max_include} · {job.screening.method}
+                {job.screening.duplicate_count} duplicates ·{" "}
+                {article
+                  ? `${article.claims.length} claims`
+                  : "awaiting compose"}
               </p>
-            ) : (
-              <p className={styles.candidateSummary}>
-                {papers.length} paper{papers.length === 1 ? "" : "s"} ·{" "}
-                {repos.length} software repo{repos.length === 1 ? "" : "s"}
-              </p>
-            )}
-            {hasScreening ? (
-              <>
-                {included.length > 0 ? (
-                  <section>
-                    <h2 className={styles.sectionTitle}>
-                      Screened in ({included.length})
-                    </h2>
-                    <ul className={styles.candidateList}>
-                      {included.map((s) => (
-                        <CandidateItem key={sourceKey(s)} source={s} />
-                      ))}
-                    </ul>
-                  </section>
-                ) : null}
-                {screenedOut.length > 0 ? (
-                  <section>
-                    <h2 className={styles.sectionTitle}>
-                      Screened out ({screenedOut.length})
-                    </h2>
-                    <ul className={styles.candidateList}>
-                      {screenedOut.map((s) => (
-                        <CandidateItem key={sourceKey(s)} source={s} />
-                      ))}
-                    </ul>
-                  </section>
-                ) : null}
-              </>
-            ) : (
-              <>
-                {papers.length > 0 ? (
-                  <section>
-                    <h2 className={styles.sectionTitle}>Scholarly works</h2>
-                    <ul className={styles.candidateList}>
-                      {papers.map((work) => (
-                        <CandidateItem key={sourceKey(work)} source={work} />
-                      ))}
-                    </ul>
-                  </section>
-                ) : null}
-                {repos.length > 0 ? (
-                  <section>
-                    <h2 className={styles.sectionTitle}>GitHub software</h2>
-                    <ul className={styles.candidateList}>
-                      {repos.map((repo) => (
-                        <CandidateItem key={sourceKey(repo)} source={repo} />
-                      ))}
-                    </ul>
-                  </section>
-                ) : null}
-              </>
-            )}
+            ) : null}
+            {included.length > 0 ? (
+              <section>
+                <h2 className={styles.sectionTitle}>
+                  Screened in ({included.length})
+                </h2>
+                <ul className={styles.candidateList}>
+                  {included.map((s) => (
+                    <CandidateItem key={sourceKey(s)} source={s} />
+                  ))}
+                </ul>
+              </section>
+            ) : null}
+            {screenedOut.length > 0 ? (
+              <section>
+                <h2 className={styles.sectionTitle}>
+                  Screened out ({screenedOut.length})
+                </h2>
+                <ul className={styles.candidateList}>
+                  {screenedOut.map((s) => (
+                    <CandidateItem key={sourceKey(s)} source={s} />
+                  ))}
+                </ul>
+              </section>
+            ) : null}
           </div>
-        ) : !error ? (
-          <p className={styles.body}>Loading candidates…</p>
         ) : null}
+
         <div className={styles.actions}>
           <Link href="/" className={styles.back}>
             ← Start another topic

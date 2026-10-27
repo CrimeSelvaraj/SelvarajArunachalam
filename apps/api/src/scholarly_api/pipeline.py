@@ -1,4 +1,4 @@
-"""Research job pipeline — discovery + screening + evidence; draft/cite stubbed."""
+"""Research job pipeline — discovery → screen → evidence → compose; cite light."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 
 import httpx
 
+from scholarly_api.composer import compose_article
 from scholarly_api.evidence_pack import build_evidence_pack
 from scholarly_api.github_client import search_repositories
 from scholarly_api.models import JobEvent, JobStage, JobStatus, ScreenDecision
@@ -14,12 +15,6 @@ from scholarly_api.openalex import search_works
 from scholarly_api.paperqa_adapter import analyze_evidence_pack
 from scholarly_api.screening import screen_sources
 from scholarly_api.store import JobStore
-
-# Post-evidence stages remain simulated until Phases 7–8.
-STUB_AFTER_READ: list[tuple[JobStage, str, float, float]] = [
-    (JobStage.draft, "Drafting a scholarly news narrative… (stub)", 0.78, 0.55),
-    (JobStage.cite, "Attaching citations and bibliography stubs… (stub)", 0.92, 0.4),
-]
 
 
 def _now() -> datetime:
@@ -259,7 +254,6 @@ async def run_pipeline(store: JobStore, job_id: str) -> None:
         id_to_files = {
             s.openalex_id: list(s.evidence_files) for s in job.sources if s.evidence_files
         }
-        # build_evidence_pack mutated the same SourceWork instances still on job.sources
         job.evidence = evidence
         job.progress = 0.7
         if evidence.status == "ready":
@@ -297,20 +291,97 @@ async def run_pipeline(store: JobStore, job_id: str) -> None:
         job.updated_at = _now()
         await store.update(job)
 
-        for stage, message, progress, delay in STUB_AFTER_READ:
-            await asyncio.sleep(delay)
-            job = await store.get(job_id)
-            if job is None:
-                return
-            job.stage = stage
-            job.progress = progress
-            job.events.append(
-                JobEvent(stage=stage, message=message, at=_now(), meta={"stub": True})
+        # --- Phase 7: article composer ---
+        job = await store.get(job_id)
+        if job is None:
+            return
+        job.stage = JobStage.draft
+        job.progress = 0.78
+        job.events.append(
+            JobEvent(
+                stage=JobStage.draft,
+                message=(
+                    "Composing scholarly news article from screened sources "
+                    "and evidence (claim→source map enforced)…"
+                ),
+                at=_now(),
+                meta={},
             )
-            job.updated_at = _now()
-            await store.update(job)
+        )
+        job.updated_at = _now()
+        await store.update(job)
 
-        await asyncio.sleep(0.3)
+        article = await compose_article(job.topic, job.sources, job.evidence)
+        job = await store.get(job_id)
+        if job is None:
+            return
+        job.article = article
+        job.progress = 0.88
+        if article.status == "ready":
+            draft_msg = (
+                f"Draft ready via {article.method} — "
+                f"{len(article.sections)} sections, {len(article.claims)} grounded claim"
+                f"{'' if len(article.claims) == 1 else 's'}"
+                + (
+                    f", {len(article.refused_claims)} refused"
+                    if article.refused_claims
+                    else ""
+                )
+                + "."
+            )
+        elif article.status == "heuristic":
+            draft_msg = (
+                f"Draft composed heuristically ({article.skip_reason or 'no LLM key'}) — "
+                f"{len(article.claims)} claim"
+                f"{'' if len(article.claims) == 1 else 's'} mapped to sources."
+            )
+        else:
+            draft_msg = (
+                f"Compose finished with status={article.status}"
+                + (f" — {article.skip_reason}" if article.skip_reason else ".")
+            )
+        job.events.append(
+            JobEvent(
+                stage=JobStage.draft,
+                message=draft_msg,
+                at=_now(),
+                meta={
+                    "status": article.status,
+                    "method": article.method,
+                    "claim_count": len(article.claims),
+                    "section_count": len(article.sections),
+                    "refused_count": len(article.refused_claims),
+                    "cited_source_count": len(article.cited_source_ids),
+                },
+            )
+        )
+        job.updated_at = _now()
+        await store.update(job)
+
+        # Cite stage — light stub (markers already inline; Phase 8 polish)
+        await asyncio.sleep(0.35)
+        job = await store.get(job_id)
+        if job is None:
+            return
+        job.stage = JobStage.cite
+        job.progress = 0.94
+        cited_n = len(article.cited_source_ids) if article else 0
+        job.events.append(
+            JobEvent(
+                stage=JobStage.cite,
+                message=(
+                    f"Inline citation markers attached for {cited_n} source"
+                    f"{'' if cited_n == 1 else 's'}. "
+                    "Full CSL/BibTeX bibliography polish arrives in Phase 8."
+                ),
+                at=_now(),
+                meta={"stub": True, "cited_source_count": cited_n},
+            )
+        )
+        job.updated_at = _now()
+        await store.update(job)
+
+        await asyncio.sleep(0.25)
         job = await store.get(job_id)
         if job is None:
             return
@@ -324,20 +395,26 @@ async def run_pipeline(store: JobStore, job_id: str) -> None:
         work_n = sum(1 for s in included if s.source_type == "work")
         soft_n = sum(1 for s in included if s.source_type == "software")
         ev = job.evidence
+        art = job.article
         job.events.append(
             JobEvent(
                 stage=JobStage.complete,
                 message=(
-                    f"Evidence pack complete — {work_n} paper"
+                    f"Article ready — {work_n} paper"
                     f"{'' if work_n == 1 else 's'}"
                     f" and {soft_n} software repo"
-                    f"{'' if soft_n == 1 else 's'} read"
+                    f"{'' if soft_n == 1 else 's'} cited"
                     + (
-                        f"; PaperQA {ev.method} ({ev.status})"
+                        f"; compose {art.method} ({art.status})"
+                        if art
+                        else ""
+                    )
+                    + (
+                        f"; evidence {ev.method}"
                         if ev
                         else ""
                     )
-                    + ". Article composition arrives in Phase 7."
+                    + "."
                 ),
                 at=_now(),
                 meta={
@@ -347,6 +424,14 @@ async def run_pipeline(store: JobStore, job_id: str) -> None:
                     "software_included": soft_n,
                     "screening": job.screening.model_dump() if job.screening else None,
                     "evidence": ev.model_dump() if ev else None,
+                    "article": {
+                        "status": art.status,
+                        "method": art.method,
+                        "claim_count": len(art.claims),
+                        "title": art.title,
+                    }
+                    if art
+                    else None,
                 },
             )
         )
