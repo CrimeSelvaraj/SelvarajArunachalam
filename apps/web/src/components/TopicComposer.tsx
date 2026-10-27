@@ -6,11 +6,16 @@ import {
   PIPELINE_ORDER,
   STAGE_LABELS,
   createJob,
+  findingLabel,
   getJob,
   isIncluded,
   isScreenedOut,
   isSoftwareSource,
+  shortSourceTitle,
+  sourceById,
   sourceKey,
+  type EvidenceFinding,
+  type EvidenceQuote,
   type JobRecord,
   type JobStage,
   type SourceWork,
@@ -217,6 +222,82 @@ function SourceGroup({
   );
 }
 
+function EvidencePanel({
+  findings,
+  quotes,
+  sources,
+  status,
+  method,
+  skipReason,
+}: {
+  findings: EvidenceFinding[];
+  quotes: EvidenceQuote[];
+  sources: SourceWork[];
+  status: string;
+  method: string;
+  skipReason?: string | null;
+}) {
+  if (!findings.length && !quotes.length) return null;
+  return (
+    <div className={styles.evidence}>
+      <p className={styles.sourcesHeading}>Evidence</p>
+      <p className={styles.evidenceMeta}>
+        {status} · {method}
+        {skipReason ? ` — ${skipReason}` : ""}
+      </p>
+      {findings.length > 0 ? (
+        <ul className={styles.findingList}>
+          {findings.map((finding) => (
+            <li key={finding.key} className={styles.findingItem}>
+              <span className={styles.findingKey}>
+                {findingLabel(finding.key)}
+              </span>
+              <p className={styles.findingAnswer}>{finding.answer}</p>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {quotes.length > 0 ? (
+        <div className={styles.quotes}>
+          <p className={styles.quotesHeading}>
+            Quotes linked to sources ({quotes.length})
+          </p>
+          <ul className={styles.quoteList}>
+            {quotes.map((quote) => {
+              const source = sourceById(sources, quote.source_id);
+              const title = shortSourceTitle(source, quote.source_id);
+              const href = source
+                ? isSoftwareSource(source)
+                  ? source.html_url || source.landing_url
+                  : source.landing_url || source.doi || source.openalex_id
+                : undefined;
+              return (
+                <li key={quote.id} className={styles.quoteItem}>
+                  <blockquote className={styles.quoteText}>
+                    {quote.quote}
+                  </blockquote>
+                  <span className={styles.quoteSource}>
+                    {href ? (
+                      <a href={href} target="_blank" rel="noreferrer">
+                        {title}
+                      </a>
+                    ) : (
+                      title
+                    )}
+                    {quote.prompt_key && quote.prompt_key !== "excerpt"
+                      ? ` · ${findingLabel(quote.prompt_key)}`
+                      : ""}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function TopicComposer() {
   const router = useRouter();
   const [topic, setTopic] = useState("");
@@ -306,10 +387,13 @@ export function TopicComposer() {
 
   const progressLabel =
     phase === "done"
-      ? job?.screening
-        ? "Screening complete"
-        : "Discovery complete"
+      ? job?.evidence
+        ? "Evidence pack ready"
+        : job?.screening
+          ? "Screening complete"
+          : "Discovery complete"
       : "Research progress";
+  const evidence = job?.evidence ?? null;
 
   return (
     <div className={styles.composer}>
@@ -406,7 +490,15 @@ export function TopicComposer() {
 
           {sources.length > 0 ? (
             <div className={styles.sourcesPanel}>
-              {job?.screening ? (
+              {evidence ? (
+                <p className={styles.sourcesSummary}>
+                  Evidence · {evidence.file_count} file
+                  {evidence.file_count === 1 ? "" : "s"} ({evidence.pdf_count}{" "}
+                  PDF · {evidence.text_count} text) · {evidence.quotes.length}{" "}
+                  quote{evidence.quotes.length === 1 ? "" : "s"} ·{" "}
+                  {evidence.method}
+                </p>
+              ) : job?.screening ? (
                 <p className={styles.sourcesSummary}>
                   {job.screening.included_count} included ·{" "}
                   {job.screening.excluded_count} excluded ·{" "}
@@ -427,6 +519,17 @@ export function TopicComposer() {
                     : ""}
                 </p>
               )}
+
+              {evidence ? (
+                <EvidencePanel
+                  findings={evidence.findings}
+                  quotes={evidence.quotes}
+                  sources={sources}
+                  status={evidence.status}
+                  method={evidence.method}
+                  skipReason={evidence.skip_reason}
+                />
+              ) : null}
 
               {hasScreening ? (
                 <>

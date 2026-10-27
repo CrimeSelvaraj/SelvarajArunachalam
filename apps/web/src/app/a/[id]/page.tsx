@@ -3,10 +3,13 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
+  findingLabel,
   getJob,
   isIncluded,
   isScreenedOut,
   isSoftwareSource,
+  shortSourceTitle,
+  sourceById,
   sourceKey,
   type JobRecord,
   type SourceWork,
@@ -52,6 +55,13 @@ function CandidateItem({ source }: { source: SourceWork }) {
       {source.relevance_score != null
         ? ` · ${Math.round(source.relevance_score * 100)}%`
         : ""}
+      {source.evidence_files && source.evidence_files.length > 0 ? (
+        <span className={styles.evidenceFiles}>
+          {" "}
+          · {source.evidence_files.length} file
+          {source.evidence_files.length === 1 ? "" : "s"}
+        </span>
+      ) : null}
       {source.screen_rationale ? (
         <span className={styles.reason}>{source.screen_rationale}</span>
       ) : null}
@@ -87,6 +97,7 @@ export default function ArticlePlaceholderPage({ params }: ArticlePageProps) {
     job?.sources.filter((s) => !isSoftwareSource(s) && !hasScreening) ?? [];
   const repos =
     job?.sources.filter((s) => isSoftwareSource(s) && !hasScreening) ?? [];
+  const evidence = job?.evidence ?? null;
 
   return (
     <main className={styles.page}>
@@ -97,11 +108,65 @@ export default function ArticlePlaceholderPage({ params }: ArticlePageProps) {
           {job?.topic ?? "Draft arrives in later phases"}
         </h1>
         <p className={styles.body}>
-          Job <code className={styles.code}>{id}</code> finished discovery and
-          screening. PaperQA evidence packing and the composed narrative land in
-          Phases 6–7.
+          Job <code className={styles.code}>{id}</code> finished discovery,
+          screening, and evidence packing. The composed narrative lands in Phase
+          7.
         </p>
         {error ? <p className={styles.body}>{error}</p> : null}
+
+        {evidence ? (
+          <div className={styles.evidenceBlock}>
+            <h2 className={styles.sectionTitle}>Evidence pack</h2>
+            <p className={styles.candidateSummary}>
+              {evidence.status} · {evidence.method} · {evidence.file_count} files
+              ({evidence.pdf_count} PDF · {evidence.text_count} text) ·{" "}
+              {evidence.quotes.length} quotes
+            </p>
+            {evidence.skip_reason ? (
+              <p className={styles.skipReason}>{evidence.skip_reason}</p>
+            ) : null}
+            {evidence.findings.length > 0 ? (
+              <ul className={styles.findingList}>
+                {evidence.findings.map((finding) => (
+                  <li key={finding.key}>
+                    <strong className={styles.findingKey}>
+                      {findingLabel(finding.key)}
+                    </strong>
+                    <p className={styles.findingAnswer}>{finding.answer}</p>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {evidence.quotes.length > 0 ? (
+              <ul className={styles.quoteList}>
+                {evidence.quotes.map((quote) => {
+                  const source = sourceById(job?.sources ?? [], quote.source_id);
+                  const title = shortSourceTitle(source, quote.source_id);
+                  const href = source
+                    ? isSoftwareSource(source)
+                      ? source.html_url || source.landing_url
+                      : source.landing_url || source.doi
+                    : undefined;
+                  return (
+                    <li key={quote.id} className={styles.quoteItem}>
+                      <blockquote>{quote.quote}</blockquote>
+                      <span className={styles.quoteSource}>
+                        {href ? (
+                          <a href={href} target="_blank" rel="noreferrer">
+                            {title}
+                          </a>
+                        ) : (
+                          title
+                        )}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : null}
+          </div>
+        ) : null}
+
         {job ? (
           <div className={styles.candidates}>
             {job.screening ? (

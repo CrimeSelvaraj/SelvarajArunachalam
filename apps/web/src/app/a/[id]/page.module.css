@@ -162,6 +162,87 @@
   line-height: 1.35;
 }
 
+.evidenceFiles {
+  color: var(--amber-soft);
+  font-size: 0.8rem;
+}
+
+.evidenceBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin: 0 0 1.75rem;
+}
+
+.skipReason {
+  margin: 0;
+  color: var(--foam-muted);
+  font-size: 0.88rem;
+  line-height: 1.45;
+  font-style: italic;
+}
+
+.findingList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.findingKey {
+  display: block;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--moss-bright);
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.findingAnswer {
+  margin: 0;
+  color: var(--foam);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.quoteList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.quoteItem blockquote {
+  margin: 0;
+  padding-left: 0.7rem;
+  border-left: 2px solid rgba(63, 143, 114, 0.45);
+  color: rgba(232, 240, 235, 0.92);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  font-style: italic;
+}
+
+.quoteSource {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.78rem;
+  color: var(--foam-muted);
+}
+
+.quoteSource a {
+  color: var(--moss-bright);
+  border-bottom: 1px solid transparent;
+}
+
+.quoteSource a:hover {
+  border-bottom-color: currentColor;
+}
+
 .candidateList li[data-decision="exclude"],
 .candidateList li[data-decision="duplicate"] {
   opacity: 0.75;

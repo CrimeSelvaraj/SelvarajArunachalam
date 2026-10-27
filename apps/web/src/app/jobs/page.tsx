@@ -34,7 +34,8 @@ export default function JobsPage() {
         <h1 className={styles.title}>This session</h1>
         <p className={styles.lede}>
           Jobs are stored in-memory on the API process — restart clears the
-          list. Discovery and screening results appear once those stages finish.
+          list. Discovery, screening, and evidence results appear as stages
+          finish.
         </p>
 
         {error ? <p className={styles.empty}>{error}</p> : null}
@@ -60,19 +61,21 @@ export default function JobsPage() {
                 </Link>
                 <span className={styles.jobMeta}>
                   {job.status} · {job.stage}
-                  {job.screening
-                    ? ` · ${job.screening.included_count} in · ${job.screening.excluded_count + job.screening.duplicate_count} out`
-                    : job.sources?.length
-                      ? (() => {
-                          const works = job.sources.filter(
-                            (s) => s.source_type !== "software",
-                          ).length;
-                          const repos = job.sources.filter(
-                            (s) => s.source_type === "software",
-                          ).length;
-                          return ` · ${works} papers · ${repos} repos`;
-                        })()
-                      : ""}
+                  {job.evidence
+                    ? ` · evidence ${job.evidence.status} · ${job.evidence.quotes.length} quotes`
+                    : job.screening
+                      ? ` · ${job.screening.included_count} in · ${job.screening.excluded_count + job.screening.duplicate_count} out`
+                      : job.sources?.length
+                        ? (() => {
+                            const works = job.sources.filter(
+                              (s) => s.source_type !== "software",
+                            ).length;
+                            const repos = job.sources.filter(
+                              (s) => s.source_type === "software",
+                            ).length;
+                            return ` · ${works} papers · ${repos} repos`;
+                          })()
+                        : ""}
                 </span>
               </li>
             ))}

@@ -80,9 +80,9 @@ async def create_job(body: CreateJobRequest) -> JobRecord:
             JobEvent(
                 stage=JobStage.queued,
                 message=(
-                    "Job queued — discovery then ASReview-inspired screening."
+                    "Job queued — discovery, screening, then evidence pack / PaperQA."
                     if body.options.include_github
-                    else "Job queued — OpenAlex discovery then screening."
+                    else "Job queued — OpenAlex discovery, screening, then evidence pack."
                 ),
                 at=now,
                 meta={

@@ -58,6 +58,52 @@ class ScreeningSummary(BaseModel):
     candidate_count: int = 0
 
 
+class EvidenceQuote(BaseModel):
+    """Quote-level excerpt tied to a screened-in source."""
+
+    id: str
+    source_id: str = Field(description="Matches SourceWork.openalex_id (or github:…)")
+    quote: str
+    summary: str | None = None
+    prompt_key: str | None = Field(
+        default=None,
+        description="key_findings | consensus | caveats | excerpt",
+    )
+    score: float | None = None
+    docname: str | None = None
+
+
+class EvidenceFinding(BaseModel):
+    """Structured PaperQA (or stub) answer for one research prompt."""
+
+    key: str = Field(description="key_findings | consensus | caveats")
+    question: str
+    answer: str
+    has_successful_answer: bool | None = None
+    quote_ids: list[str] = Field(default_factory=list)
+
+
+class EvidencePackSummary(BaseModel):
+    """Per-job evidence pack + PaperQA adapter outcome."""
+
+    status: str = Field(
+        default="pending",
+        description="ready | paperqa_skipped | failed",
+    )
+    method: str = Field(
+        default="stubbed",
+        description="paperqa | heuristic_excerpts | stubbed",
+    )
+    directory: str | None = None
+    file_count: int = 0
+    pdf_count: int = 0
+    text_count: int = 0
+    source_count: int = 0
+    skip_reason: str | None = None
+    findings: list[EvidenceFinding] = Field(default_factory=list)
+    quotes: list[EvidenceQuote] = Field(default_factory=list)
+
+
 class CreateJobRequest(BaseModel):
     topic: str = Field(..., min_length=3, max_length=500)
     options: JobOptions = Field(default_factory=JobOptions)
@@ -101,6 +147,11 @@ class SourceWork(BaseModel):
     screen_decision: ScreenDecision | None = None
     screen_rationale: str | None = None
     duplicate_of: str | None = None
+    # Evidence pack (Phase 6)
+    evidence_files: list[str] = Field(
+        default_factory=list,
+        description="Relative paths written into the job evidence pack",
+    )
 
 
 class JobRecord(BaseModel):
@@ -113,6 +164,7 @@ class JobRecord(BaseModel):
     events: list[JobEvent] = Field(default_factory=list)
     sources: list[SourceWork] = Field(default_factory=list)
     screening: ScreeningSummary | None = None
+    evidence: EvidencePackSummary | None = None
     article_id: str | None = None
     error: str | None = None
     created_at: datetime

@@ -1,4 +1,4 @@
-"""Research job pipeline — discovery + screening; later stages stubbed."""
+"""Research job pipeline — discovery + screening + evidence; draft/cite stubbed."""
 
 from __future__ import annotations
 
@@ -7,17 +7,18 @@ from datetime import datetime, timezone
 
 import httpx
 
+from scholarly_api.evidence_pack import build_evidence_pack
 from scholarly_api.github_client import search_repositories
-from scholarly_api.models import JobEvent, JobStage, JobStatus, SourceWork
+from scholarly_api.models import JobEvent, JobStage, JobStatus, ScreenDecision
 from scholarly_api.openalex import search_works
+from scholarly_api.paperqa_adapter import analyze_evidence_pack
 from scholarly_api.screening import screen_sources
 from scholarly_api.store import JobStore
 
-# Post-screening stages remain simulated until Phases 6–8.
-STUB_AFTER_SCREEN: list[tuple[JobStage, str, float, float]] = [
-    (JobStage.read, "Reading open-access abstracts and evidence snippets… (stub)", 0.55, 0.7),
-    (JobStage.draft, "Drafting a scholarly news narrative… (stub)", 0.78, 0.6),
-    (JobStage.cite, "Attaching citations and bibliography stubs… (stub)", 0.92, 0.45),
+# Post-evidence stages remain simulated until Phases 7–8.
+STUB_AFTER_READ: list[tuple[JobStage, str, float, float]] = [
+    (JobStage.draft, "Drafting a scholarly news narrative… (stub)", 0.78, 0.55),
+    (JobStage.cite, "Attaching citations and bibliography stubs… (stub)", 0.92, 0.4),
 ]
 
 
@@ -25,7 +26,7 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
-def _merge_sources(works: list[SourceWork], repos: list[SourceWork]) -> list[SourceWork]:
+def _merge_sources(works, repos):
     """Scholarly works first, then software repos (both ranked by provider)."""
     return [*works, *repos]
 
@@ -68,8 +69,8 @@ async def run_pipeline(store: JobStore, job_id: str) -> None:
             else None
         )
 
-        works: list[SourceWork] = []
-        repos: list[SourceWork] = []
+        works = []
+        repos = []
         github_error: str | None = None
 
         try:
@@ -184,7 +185,119 @@ async def run_pipeline(store: JobStore, job_id: str) -> None:
         job.updated_at = _now()
         await store.update(job)
 
-        for stage, message, progress, delay in STUB_AFTER_SCREEN:
+        # --- Phase 6: evidence pack + PaperQA adapter ---
+        job = await store.get(job_id)
+        if job is None:
+            return
+        job.stage = JobStage.read
+        job.progress = 0.5
+        included_n = sum(
+            1 for s in job.sources if s.screen_decision == ScreenDecision.include
+        )
+        job.events.append(
+            JobEvent(
+                stage=JobStage.read,
+                message=(
+                    f"Building evidence pack for {included_n} screened-in source"
+                    f"{'' if included_n == 1 else 's'} "
+                    "(OA PDFs when allowed; abstracts/READMEs otherwise)…"
+                ),
+                at=_now(),
+                meta={"included": included_n},
+            )
+        )
+        job.updated_at = _now()
+        await store.update(job)
+
+        job = await store.get(job_id)
+        if job is None:
+            return
+
+        pack = await build_evidence_pack(job.id, job.sources)
+        job.progress = 0.58
+        job.events.append(
+            JobEvent(
+                stage=JobStage.read,
+                message=(
+                    f"Evidence pack ready — {len(pack.files)} file"
+                    f"{'' if len(pack.files) == 1 else 's'} "
+                    f"({pack.pdf_count} PDF, {pack.text_count} text) in {pack.directory}."
+                ),
+                at=_now(),
+                meta={
+                    "directory": str(pack.directory),
+                    "file_count": len(pack.files),
+                    "pdf_count": pack.pdf_count,
+                    "text_count": pack.text_count,
+                    "notes": pack.notes[:20],
+                },
+            )
+        )
+        job.updated_at = _now()
+        await store.update(job)
+
+        job = await store.get(job_id)
+        if job is None:
+            return
+        job.progress = 0.62
+        job.events.append(
+            JobEvent(
+                stage=JobStage.read,
+                message="Running PaperQA adapter over the evidence pack…",
+                at=_now(),
+                meta={},
+            )
+        )
+        job.updated_at = _now()
+        await store.update(job)
+
+        evidence = await analyze_evidence_pack(job.topic, pack)
+        job = await store.get(job_id)
+        if job is None:
+            return
+        # Re-attach evidence_files written onto source objects during pack build
+        id_to_files = {
+            s.openalex_id: list(s.evidence_files) for s in job.sources if s.evidence_files
+        }
+        # build_evidence_pack mutated the same SourceWork instances still on job.sources
+        job.evidence = evidence
+        job.progress = 0.7
+        if evidence.status == "ready":
+            msg = (
+                f"PaperQA indexed the pack — {len(evidence.findings)} findings, "
+                f"{len(evidence.quotes)} quote"
+                f"{'' if len(evidence.quotes) == 1 else 's'} linked to sources."
+            )
+        elif evidence.status == "paperqa_skipped":
+            msg = (
+                f"PaperQA skipped ({evidence.skip_reason or 'no LLM key'}). "
+                f"Kept {len(evidence.quotes)} heuristic excerpt"
+                f"{'' if len(evidence.quotes) == 1 else 's'} from the evidence pack."
+            )
+        else:
+            msg = (
+                f"Evidence step finished with status={evidence.status}"
+                + (f" — {evidence.skip_reason}" if evidence.skip_reason else ".")
+            )
+        job.events.append(
+            JobEvent(
+                stage=JobStage.read,
+                message=msg,
+                at=_now(),
+                meta={
+                    "status": evidence.status,
+                    "method": evidence.method,
+                    "quote_count": len(evidence.quotes),
+                    "finding_count": len(evidence.findings),
+                    "skip_reason": evidence.skip_reason,
+                    "sources_with_files": len(id_to_files),
+                },
+            )
+        )
+        job.updated_at = _now()
+        await store.update(job)
+
+        for stage, message, progress, delay in STUB_AFTER_READ:
             await asyncio.sleep(delay)
             job = await store.get(job_id)
             if job is None:
@@ -197,7 +310,7 @@ async def run_pipeline(store: JobStore, job_id: str) -> None:
             job.updated_at = _now()
             await store.update(job)
 
-        await asyncio.sleep(0.35)
+        await asyncio.sleep(0.3)
         job = await store.get(job_id)
         if job is None:
             return
@@ -206,19 +319,25 @@ async def run_pipeline(store: JobStore, job_id: str) -> None:
         job.progress = 1.0
         job.article_id = job.id
         included = [
-            s for s in job.sources if s.screen_decision and s.screen_decision.value == "include"
+            s for s in job.sources if s.screen_decision == ScreenDecision.include
         ]
         work_n = sum(1 for s in included if s.source_type == "work")
         soft_n = sum(1 for s in included if s.source_type == "software")
+        ev = job.evidence
         job.events.append(
             JobEvent(
                 stage=JobStage.complete,
                 message=(
-                    f"Screening complete — {work_n} paper"
+                    f"Evidence pack complete — {work_n} paper"
                     f"{'' if work_n == 1 else 's'}"
                     f" and {soft_n} software repo"
-                    f"{'' if soft_n == 1 else 's'} selected for deep read. "
-                    "PaperQA evidence and composition arrive in later phases."
+                    f"{'' if soft_n == 1 else 's'} read"
+                    + (
+                        f"; PaperQA {ev.method} ({ev.status})"
+                        if ev
+                        else ""
+                    )
+                    + ". Article composition arrives in Phase 7."
                 ),
                 at=_now(),
                 meta={
@@ -227,6 +346,7 @@ async def run_pipeline(store: JobStore, job_id: str) -> None:
                     "works_included": work_n,
                     "software_included": soft_n,
                     "screening": job.screening.model_dump() if job.screening else None,
+                    "evidence": ev.model_dump() if ev else None,
                 },
             )
         )
