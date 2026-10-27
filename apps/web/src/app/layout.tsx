@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Newsreader, Sora } from "next/font/google";
+import { SiteChrome } from "@/components/SiteChrome";
 import "./globals.css";
 
 const newsreader = Newsreader({
@@ -36,7 +37,7 @@ export default function RootLayout({
           } as React.CSSProperties
         }
       >
-        {children}
+        <SiteChrome>{children}</SiteChrome>
       </body>
     </html>
   );

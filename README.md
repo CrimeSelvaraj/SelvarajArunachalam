@@ -2,13 +2,13 @@
 
 Public web app where anyone enters a research topic and receives a **readable scholarly news article** grounded in open scholarship (OpenAlex, OA full text, public GitHub) — with transparent research progress and citation discipline.
 
-> **Status:** Phases 0–2 shipped — monorepo scaffold, public landing shell, and stub job API with fake pipeline stages. Real discovery / PaperQA / export land in later phases (see project build plan).
+> **Status:** Phases 0–3 — monorepo scaffold, public shell with header/side nav, job API, and **real OpenAlex discovery**. Screening / PaperQA / compose / export remain stubbed.
 
 ## Monorepo layout
 
 ```
 apps/web          Next.js (App Router) public site
-apps/api          FastAPI job orchestrator
+apps/api          FastAPI job orchestrator + OpenAlex client
 packages/shared   Shared types / contracts (placeholder)
 docs/             Product docs
 ```
@@ -19,9 +19,7 @@ docs/             Product docs
 |------|--------|
 | **Node 22+** + **pnpm** | Frontend |
 | **Python 3.12+** + **[uv](https://docs.astral.sh/uv/)** | Backend |
-| **pandoc** | Export sidecar (installed for later phases; unused by stubs) |
-
-Install tooling if missing:
+| **pandoc** | Export sidecar (installed for later phases; unused yet) |
 
 ```bash
 # pandoc (Debian/Ubuntu)
@@ -35,6 +33,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 
 ```bash
 cp .env.example .env
+# set OPENALEX_MAILTO to a real contact email when possible
 
 # API (terminal 1)
 cd apps/api
@@ -51,19 +50,39 @@ pnpm dev
 - API health: http://localhost:8000/health  
 - Browser calls go through Next rewrites: `/api/backend/*` → FastAPI
 
-## Job API stub (Phase 2)
+## Job API
 
 | Method | Path | Purpose |
 |--------|------|---------|
 | `POST` | `/jobs` | Create job `{ topic, options? }` |
-| `GET` | `/jobs/{id}` | Poll status + stage events |
+| `GET` | `/jobs` | Recent jobs (in-memory, newest first) |
+| `GET` | `/jobs/{id}` | Poll status, events, and `sources` |
 
-Simulated stages: **search → screen → read → draft → cite → complete**. No OpenAlex / GitHub / LLM calls yet.
+**Search stage (real):** thin HTTP client → `GET https://api.openalex.org/works?search=…&mailto=…` with a polite `User-Agent`. Results are mapped to `sources[]` on the job (title, authors, year, DOI/OpenAlex id, abstract snippet, OA/PDF hints).
+
+Later stages (**screen → read → draft → cite**) are still stubbed delays.
+
+### OpenAlex call shape
+
+```http
+GET https://api.openalex.org/works?search=<topic>&per_page=8&select=id,doi,title,...&mailto=<OPENALEX_MAILTO>
+User-Agent: ProofPress/0.2 (+https://github.com/CrimeSelvaraj/SelvarajArunachalam) (mailto:<OPENALEX_MAILTO>)
+Accept: application/json
+```
+
+Optional: `api_key=<OPENALEX_API_KEY>` for a dedicated daily budget.
 
 ## Environment variables
 
-See [`.env.example`](.env.example). LLM / OpenAlex / GitHub keys are listed for later phases and are **not** required for the stub.
+See [`.env.example`](.env.example).
+
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `OPENALEX_MAILTO` | Recommended | Contact email in User-Agent / `mailto` query (OpenAlex polite use) |
+| `OPENALEX_API_KEY` | Optional | Higher OpenAlex budget |
+| `API_ORIGIN` | For web | FastAPI origin for Next rewrites |
+| LLM / GitHub / Crossref keys | Later phases | Not used yet |
 
 ## License
 
-See repository LICENSE when added; generated articles and disclosure wording are TBD.
+See repository LICENSE; generated articles and disclosure wording are TBD.

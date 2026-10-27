@@ -7,14 +7,18 @@ FastAPI job orchestrator for scholarly news generation.
 ```bash
 cd apps/api
 uv sync
+# optional: export OPENALEX_MAILTO=you@example.com
 uv run uvicorn scholarly_api.main:app --reload --port 8000
 ```
 
 Health check: `GET http://localhost:8000/health`
 
-## Phase 2 stub
+## Phase 3 — OpenAlex discovery
 
 - `POST /jobs` — create a research job (topic + options)
-- `GET /jobs/{id}` — poll status and staged progress events
+- `GET /jobs` — list recent in-memory jobs
+- `GET /jobs/{id}` — poll status, events, and discovered `sources`
 
-Stages are **simulated** (`search` → `screen` → `read` → `draft` → `cite`). Real OpenAlex / GitHub / PaperQA wiring starts in later phases.
+The **search** stage calls OpenAlex (`scholarly_api/openalex.py`). Later stages remain stubbed.
+
+Env: `OPENALEX_MAILTO` (recommended), `OPENALEX_API_KEY` (optional).

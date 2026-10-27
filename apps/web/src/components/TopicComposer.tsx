@@ -9,6 +9,7 @@ import {
   getJob,
   type JobRecord,
   type JobStage,
+  type SourceWork,
 } from "@/lib/jobs";
 import styles from "./TopicComposer.module.css";
 
@@ -19,6 +20,12 @@ function stageIndex(stage: JobStage): number {
   if (stage === "complete") return PIPELINE_ORDER.length;
   if (stage === "failed") return -2;
   return PIPELINE_ORDER.indexOf(stage);
+}
+
+function authorLine(work: SourceWork): string {
+  if (!work.authors.length) return "Unknown authors";
+  if (work.authors.length <= 2) return work.authors.join(", ");
+  return `${work.authors[0]} et al.`;
 }
 
 export function TopicComposer() {
@@ -92,6 +99,7 @@ export function TopicComposer() {
   const activeIdx = job ? stageIndex(job.stage) : -1;
   const latestMessage =
     job?.events.length ? job.events[job.events.length - 1].message : null;
+  const sources = job?.sources ?? [];
 
   return (
     <div className={styles.composer}>
@@ -128,7 +136,7 @@ export function TopicComposer() {
         <div className={styles.progress} aria-live="polite">
           <div className={styles.progressMeta}>
             <span className={styles.progressLabel}>
-              {phase === "done" ? "Stub complete" : "Research progress"}
+              {phase === "done" ? "Discovery complete" : "Research progress"}
             </span>
             <span className={styles.progressPct}>
               {Math.round((job?.progress ?? 0) * 100)}%
@@ -165,6 +173,72 @@ export function TopicComposer() {
           {latestMessage ? (
             <p className={styles.message}>{latestMessage}</p>
           ) : null}
+
+          {sources.length > 0 ? (
+            <div className={styles.sources}>
+              <p className={styles.sourcesHeading}>
+                OpenAlex works ({sources.length})
+              </p>
+              <ol className={styles.sourceList}>
+                {sources.map((work) => {
+                  const href =
+                    work.landing_url ||
+                    work.doi ||
+                    work.openalex_id ||
+                    undefined;
+                  return (
+                    <li key={work.openalex_id} className={styles.sourceItem}>
+                      <div className={styles.sourceTop}>
+                        {href ? (
+                          <a
+                            href={href}
+                            target="_blank"
+                            rel="noreferrer"
+                            className={styles.sourceTitle}
+                          >
+                            {work.title}
+                          </a>
+                        ) : (
+                          <span className={styles.sourceTitle}>{work.title}</span>
+                        )}
+                        <span className={styles.sourceMeta}>
+                          {authorLine(work)}
+                          {work.year ? ` · ${work.year}` : ""}
+                        </span>
+                      </div>
+                      <div className={styles.sourceFlags}>
+                        {work.is_oa ? (
+                          <span className={styles.flag} data-kind="oa">
+                            OA{work.oa_status ? ` · ${work.oa_status}` : ""}
+                          </span>
+                        ) : (
+                          <span className={styles.flag}>Closed / unknown</span>
+                        )}
+                        {work.pdf_url ? (
+                          <a
+                            href={work.pdf_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className={styles.flag}
+                            data-kind="pdf"
+                          >
+                            PDF
+                          </a>
+                        ) : null}
+                        {work.doi ? (
+                          <span className={styles.flag}>{work.doi.replace("https://doi.org/", "")}</span>
+                        ) : null}
+                      </div>
+                      {work.abstract_snippet ? (
+                        <p className={styles.snippet}>{work.abstract_snippet}</p>
+                      ) : null}
+                    </li>
+                  );
+                })}
+              </ol>
+            </div>
+          ) : null}
+
           {phase === "done" && job?.article_id ? (
             <button
               type="button"

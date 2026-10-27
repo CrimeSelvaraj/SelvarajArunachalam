@@ -183,6 +183,102 @@
   line-height: 1.45;
 }
 
+.sources {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid rgba(232, 240, 235, 0.1);
+  max-height: min(42vh, 22rem);
+  overflow: auto;
+  padding-right: 0.25rem;
+}
+
+.sourcesHeading {
+  margin: 0;
+  font-size: 0.74rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--amber-soft);
+}
+
+.sourceList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.sourceItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(232, 240, 235, 0.08);
+}
+
+.sourceItem:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.sourceTop {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.sourceTitle {
+  color: var(--foam);
+  font-size: 0.95rem;
+  line-height: 1.35;
+  font-weight: 500;
+}
+
+a.sourceTitle:hover {
+  color: var(--moss-bright);
+}
+
+.sourceMeta {
+  color: var(--foam-muted);
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.sourceFlags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.55rem;
+}
+
+.flag {
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--foam-muted);
+  border-bottom: 1px solid transparent;
+}
+
+.flag[data-kind="oa"] {
+  color: var(--moss-bright);
+}
+
+.flag[data-kind="pdf"] {
+  color: var(--amber-soft);
+}
+
+a.flag:hover {
+  border-bottom-color: currentColor;
+}
+
+.snippet {
+  margin: 0;
+  color: rgba(168, 184, 174, 0.92);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
 .secondary {
   align-self: flex-start;
   margin-top: 0.2rem;
