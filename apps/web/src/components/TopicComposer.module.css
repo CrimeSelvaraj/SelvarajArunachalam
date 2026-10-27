@@ -223,10 +223,10 @@
 .sourcesPanel {
   display: flex;
   flex-direction: column;
-  gap: 0.65rem;
+  gap: 0.85rem;
   padding-top: 0.35rem;
   border-top: 1px solid rgba(232, 240, 235, 0.1);
-  max-height: min(48vh, 26rem);
+  max-height: min(56vh, 34rem);
   overflow: auto;
   padding-right: 0.25rem;
 }
@@ -279,6 +279,13 @@
   gap: 0.2rem;
 }
 
+.badgeRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
 .kindBadge {
   align-self: flex-start;
   font-size: 0.65rem;
@@ -288,6 +295,51 @@
   border-radius: 4px;
   border: 1px solid rgba(232, 240, 235, 0.12);
   color: var(--foam-muted);
+}
+
+.decisionBadge {
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.12rem 0.4rem;
+  border-radius: 4px;
+  border: 1px solid rgba(232, 240, 235, 0.12);
+  color: var(--foam-muted);
+}
+
+.decisionBadge[data-decision="include"] {
+  color: var(--moss-bright);
+  border-color: rgba(63, 143, 114, 0.4);
+}
+
+.decisionBadge[data-decision="exclude"] {
+  color: rgba(168, 184, 174, 0.85);
+  border-color: rgba(232, 240, 235, 0.16);
+}
+
+.decisionBadge[data-decision="duplicate"] {
+  color: var(--amber-soft);
+  border-color: rgba(212, 168, 87, 0.35);
+}
+
+.scoreBadge {
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--amber-soft);
+  letter-spacing: 0.02em;
+}
+
+.sourceItem[data-decision="exclude"],
+.sourceItem[data-decision="duplicate"] {
+  opacity: 0.72;
+}
+
+.rationale {
+  margin: 0;
+  color: rgba(168, 184, 174, 0.95);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  font-style: italic;
 }
 
 .kindBadge[data-kind="work"] {

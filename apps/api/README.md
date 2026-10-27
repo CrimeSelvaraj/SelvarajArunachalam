@@ -9,22 +9,22 @@ cd apps/api
 uv sync
 # optional: export OPENALEX_MAILTO=you@example.com
 # optional: export GITHUB_TOKEN=ghp_…   # higher GitHub rate limits
+# optional: export OPENAI_API_KEY=…     # LLM screening; else heuristics
 uv run uvicorn scholarly_api.main:app --reload --port 8000
 ```
 
 Health check: `GET http://localhost:8000/health`
 
-## Discovery (Phases 3–4)
+## Pipeline (Phases 3–5)
 
-- `POST /jobs` — create a research job (topic + options; `include_github` defaults true)
+- `POST /jobs` — create a research job (topic + options; `include_github` defaults true; optional `screen_max`)
 - `GET /jobs` — list recent in-memory jobs
-- `GET /jobs/{id}` — poll status, events, and discovered `sources`
+- `GET /jobs/{id}` — poll status, events, discovered `sources`, and `screening` summary
 
-The **search** stage calls:
+Stages:
 
-- OpenAlex (`scholarly_api/openalex.py`) → `source_type=work`
-- GitHub (`scholarly_api/github_client.py`) when `include_github` → `source_type=software`
+1. **search** — OpenAlex (`openalex.py`) + optional GitHub (`github_client.py`)
+2. **screen** — ASReview-inspired rank / dedupe / include-exclude (`screening.py`); decisions persisted on each source
+3. **read / draft / cite** — still stubbed
 
-Later stages remain stubbed.
-
-Env: `OPENALEX_MAILTO` (recommended), `OPENALEX_API_KEY` (optional), `GITHUB_TOKEN` (optional, recommended for rate limits).
+Env: `OPENALEX_MAILTO` (recommended), `OPENALEX_API_KEY` (optional), `GITHUB_TOKEN` (optional), `OPENAI_API_KEY` (optional for screening LLM).

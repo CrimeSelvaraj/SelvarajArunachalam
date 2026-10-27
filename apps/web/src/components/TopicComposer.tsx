@@ -7,6 +7,8 @@ import {
   STAGE_LABELS,
   createJob,
   getJob,
+  isIncluded,
+  isScreenedOut,
   isSoftwareSource,
   sourceKey,
   type JobRecord,
@@ -34,15 +36,35 @@ function authorLine(work: SourceWork): string {
   return `${work.authors[0]} et al.`;
 }
 
+function scoreLabel(work: SourceWork): string | null {
+  if (work.relevance_score == null) return null;
+  return `${Math.round(work.relevance_score * 100)}%`;
+}
+
 function WorkSourceItem({ work }: { work: SourceWork }) {
   const href =
     work.landing_url || work.doi || work.openalex_id || undefined;
+  const decision = work.screen_decision;
   return (
-    <li className={styles.sourceItem} data-kind="work">
+    <li
+      className={styles.sourceItem}
+      data-kind="work"
+      data-decision={decision ?? undefined}
+    >
       <div className={styles.sourceTop}>
-        <span className={styles.kindBadge} data-kind="work">
-          Paper
-        </span>
+        <div className={styles.badgeRow}>
+          <span className={styles.kindBadge} data-kind="work">
+            Paper
+          </span>
+          {decision ? (
+            <span className={styles.decisionBadge} data-decision={decision}>
+              {decision}
+            </span>
+          ) : null}
+          {scoreLabel(work) ? (
+            <span className={styles.scoreBadge}>{scoreLabel(work)}</span>
+          ) : null}
+        </div>
         {href ? (
           <a
             href={href}
@@ -85,7 +107,10 @@ function WorkSourceItem({ work }: { work: SourceWork }) {
           </span>
         ) : null}
       </div>
-      {work.abstract_snippet ? (
+      {work.screen_rationale ? (
+        <p className={styles.rationale}>{work.screen_rationale}</p>
+      ) : null}
+      {work.abstract_snippet && !work.screen_rationale ? (
         <p className={styles.snippet}>{work.abstract_snippet}</p>
       ) : null}
     </li>
@@ -95,12 +120,27 @@ function WorkSourceItem({ work }: { work: SourceWork }) {
 function SoftwareSourceItem({ repo }: { repo: SourceWork }) {
   const href = repo.html_url || repo.landing_url || undefined;
   const displayTitle = repo.github_full_name || repo.title;
+  const decision = repo.screen_decision;
   return (
-    <li className={styles.sourceItem} data-kind="software">
+    <li
+      className={styles.sourceItem}
+      data-kind="software"
+      data-decision={decision ?? undefined}
+    >
       <div className={styles.sourceTop}>
-        <span className={styles.kindBadge} data-kind="software">
-          Software
-        </span>
+        <div className={styles.badgeRow}>
+          <span className={styles.kindBadge} data-kind="software">
+            Software
+          </span>
+          {decision ? (
+            <span className={styles.decisionBadge} data-decision={decision}>
+              {decision}
+            </span>
+          ) : null}
+          {scoreLabel(repo) ? (
+            <span className={styles.scoreBadge}>{scoreLabel(repo)}</span>
+          ) : null}
+        </div>
         {href ? (
           <a
             href={href}
@@ -133,15 +173,47 @@ function SoftwareSourceItem({ repo }: { repo: SourceWork }) {
           </span>
         ) : null}
       </div>
-      {repo.readme_snippet || repo.abstract_snippet ? (
+      {repo.screen_rationale ? (
+        <p className={styles.rationale}>{repo.screen_rationale}</p>
+      ) : null}
+      {!repo.screen_rationale &&
+      (repo.readme_snippet || repo.abstract_snippet) ? (
         <p className={styles.snippet}>
           {repo.readme_snippet || repo.abstract_snippet}
         </p>
       ) : null}
-      {repo.citation_cff ? (
-        <pre className={styles.cffSnippet}>{repo.citation_cff}</pre>
-      ) : null}
     </li>
+  );
+}
+
+function SourceGroup({
+  heading,
+  items,
+}: {
+  heading: string;
+  items: SourceWork[];
+}) {
+  if (!items.length) return null;
+  const papers = items.filter((s) => !isSoftwareSource(s));
+  const software = items.filter((s) => isSoftwareSource(s));
+  return (
+    <div className={styles.sources}>
+      <p className={styles.sourcesHeading}>{heading}</p>
+      {papers.length > 0 ? (
+        <ol className={styles.sourceList}>
+          {papers.map((work) => (
+            <WorkSourceItem key={sourceKey(work)} work={work} />
+          ))}
+        </ol>
+      ) : null}
+      {software.length > 0 ? (
+        <ol className={styles.sourceList}>
+          {software.map((repo) => (
+            <SoftwareSourceItem key={sourceKey(repo)} repo={repo} />
+          ))}
+        </ol>
+      ) : null}
+    </div>
   );
 }
 
@@ -205,7 +277,9 @@ export function TopicComposer() {
     setJob(null);
 
     try {
-      const created = await createJob(trimmed, { include_github: includeGithub });
+      const created = await createJob(trimmed, {
+        include_github: includeGithub,
+      });
       setJob(created);
       setPhase("running");
       startPolling(created.id);
@@ -219,8 +293,23 @@ export function TopicComposer() {
   const latestMessage =
     job?.events.length ? job.events[job.events.length - 1].message : null;
   const sources = job?.sources ?? [];
-  const paperSources = sources.filter((s) => !isSoftwareSource(s));
-  const softwareSources = sources.filter((s) => isSoftwareSource(s));
+  const hasScreening = sources.some((s) => s.screen_decision);
+  const included = hasScreening
+    ? sources.filter(isIncluded)
+    : [];
+  const screenedOut = hasScreening
+    ? sources.filter(isScreenedOut)
+    : [];
+  const unscored = hasScreening ? [] : sources;
+  const paperSources = unscored.filter((s) => !isSoftwareSource(s));
+  const softwareSources = unscored.filter((s) => isSoftwareSource(s));
+
+  const progressLabel =
+    phase === "done"
+      ? job?.screening
+        ? "Screening complete"
+        : "Discovery complete"
+      : "Research progress";
 
   return (
     <div className={styles.composer}>
@@ -278,9 +367,7 @@ export function TopicComposer() {
       {(phase === "running" || phase === "done" || (phase === "error" && job)) && (
         <div className={styles.progress} aria-live="polite">
           <div className={styles.progressMeta}>
-            <span className={styles.progressLabel}>
-              {phase === "done" ? "Discovery complete" : "Research progress"}
-            </span>
+            <span className={styles.progressLabel}>{progressLabel}</span>
             <span className={styles.progressPct}>
               {Math.round((job?.progress ?? 0) * 100)}%
             </span>
@@ -319,35 +406,66 @@ export function TopicComposer() {
 
           {sources.length > 0 ? (
             <div className={styles.sourcesPanel}>
-              <p className={styles.sourcesSummary}>
-                {paperSources.length} paper
-                {paperSources.length === 1 ? "" : "s"}
-                {softwareSources.length > 0 || job?.options.include_github
-                  ? ` · ${softwareSources.length} software repo${
-                      softwareSources.length === 1 ? "" : "s"
-                    }`
-                  : ""}
-              </p>
-              {paperSources.length > 0 ? (
-                <div className={styles.sources}>
-                  <p className={styles.sourcesHeading}>Scholarly works</p>
-                  <ol className={styles.sourceList}>
-                    {paperSources.map((work) => (
-                      <WorkSourceItem key={sourceKey(work)} work={work} />
-                    ))}
-                  </ol>
-                </div>
-              ) : null}
-              {softwareSources.length > 0 ? (
-                <div className={styles.sources}>
-                  <p className={styles.sourcesHeading}>GitHub software</p>
-                  <ol className={styles.sourceList}>
-                    {softwareSources.map((repo) => (
-                      <SoftwareSourceItem key={sourceKey(repo)} repo={repo} />
-                    ))}
-                  </ol>
-                </div>
-              ) : null}
+              {job?.screening ? (
+                <p className={styles.sourcesSummary}>
+                  {job.screening.included_count} included ·{" "}
+                  {job.screening.excluded_count} excluded ·{" "}
+                  {job.screening.duplicate_count} duplicate
+                  {job.screening.duplicate_count === 1 ? "" : "s"}
+                  {" · "}cap {job.screening.max_include}
+                  {" · "}
+                  {job.screening.method}
+                </p>
+              ) : (
+                <p className={styles.sourcesSummary}>
+                  {paperSources.length} paper
+                  {paperSources.length === 1 ? "" : "s"}
+                  {softwareSources.length > 0 || job?.options.include_github
+                    ? ` · ${softwareSources.length} software repo${
+                        softwareSources.length === 1 ? "" : "s"
+                      }`
+                    : ""}
+                </p>
+              )}
+
+              {hasScreening ? (
+                <>
+                  <SourceGroup
+                    heading={`Screened in (${included.length})`}
+                    items={included}
+                  />
+                  <SourceGroup
+                    heading={`Screened out (${screenedOut.length})`}
+                    items={screenedOut}
+                  />
+                </>
+              ) : (
+                <>
+                  {paperSources.length > 0 ? (
+                    <div className={styles.sources}>
+                      <p className={styles.sourcesHeading}>Scholarly works</p>
+                      <ol className={styles.sourceList}>
+                        {paperSources.map((work) => (
+                          <WorkSourceItem key={sourceKey(work)} work={work} />
+                        ))}
+                      </ol>
+                    </div>
+                  ) : null}
+                  {softwareSources.length > 0 ? (
+                    <div className={styles.sources}>
+                      <p className={styles.sourcesHeading}>GitHub software</p>
+                      <ol className={styles.sourceList}>
+                        {softwareSources.map((repo) => (
+                          <SoftwareSourceItem
+                            key={sourceKey(repo)}
+                            repo={repo}
+                          />
+                        ))}
+                      </ol>
+                    </div>
+                  ) : null}
+                </>
+              )}
             </div>
           ) : null}
 

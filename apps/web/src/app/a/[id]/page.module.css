@@ -126,6 +126,47 @@
   border-color: rgba(212, 168, 87, 0.35);
 }
 
+.decision {
+  display: inline-block;
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.08rem 0.35rem;
+  border-radius: 4px;
+  border: 1px solid rgba(232, 240, 235, 0.12);
+  color: var(--foam-muted);
+  vertical-align: middle;
+  margin-right: 0.35rem;
+}
+
+.decision[data-decision="include"] {
+  color: var(--moss-bright);
+  border-color: rgba(63, 143, 114, 0.4);
+}
+
+.decision[data-decision="exclude"] {
+  color: rgba(168, 184, 174, 0.85);
+}
+
+.decision[data-decision="duplicate"] {
+  color: var(--amber-soft);
+  border-color: rgba(212, 168, 87, 0.35);
+}
+
+.reason {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--foam-muted);
+  font-size: 0.8rem;
+  font-style: italic;
+  line-height: 1.35;
+}
+
+.candidateList li[data-decision="exclude"],
+.candidateList li[data-decision="duplicate"] {
+  opacity: 0.75;
+}
+
 .back {
   color: var(--foam);
   border-bottom: 1px solid rgba(232, 240, 235, 0.28);
