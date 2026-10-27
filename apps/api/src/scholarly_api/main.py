@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import PlainTextResponse, Response
 
 from scholarly_api import __version__
 from scholarly_api.models import (
@@ -109,6 +110,51 @@ async def get_job(job_id: str) -> JobRecord:
     if job is None:
         raise HTTPException(status_code=404, detail="Job not found")
     return job
+
+
+@app.get("/jobs/{job_id}/bibliography.bib")
+async def download_bibliography_bib(job_id: str) -> Response:
+    """Download the job bibliography as BibTeX (Phase 8)."""
+    job = await store.get(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+    if job.bibliography is None or not job.bibliography.bibtex.strip():
+        raise HTTPException(
+            status_code=404,
+            detail="Bibliography not ready yet (wait for the cite stage)",
+        )
+    filename = f"proofpress-{job_id[:8]}.bib"
+    return Response(
+        content=job.bibliography.bibtex,
+        media_type="application/x-bibtex",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+        },
+    )
+
+
+@app.get("/jobs/{job_id}/bibliography.json", response_class=PlainTextResponse)
+async def download_bibliography_csl(job_id: str) -> Response:
+    """Download canonical CSL-JSON for the job bibliography."""
+    import json
+
+    job = await store.get(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+    if job.bibliography is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Bibliography not ready yet (wait for the cite stage)",
+        )
+    body = json.dumps(job.bibliography.csl_json, indent=2, ensure_ascii=False)
+    filename = f"proofpress-{job_id[:8]}-csl.json"
+    return Response(
+        content=body,
+        media_type="application/json",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+        },
+    )
 
 
 def run() -> None:

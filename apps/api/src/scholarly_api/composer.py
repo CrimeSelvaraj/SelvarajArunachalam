@@ -41,13 +41,13 @@ _CITE_MARKER = re.compile(r"\[(\d+)\]")
 
 
 def _cite_index_map(sources: list[SourceWork]) -> list[SourceWork]:
-    """Stable citation order: screened-in works first, then software."""
-    included = [s for s in sources if s.screen_decision == ScreenDecision.include]
-    if not included:
-        included = list(sources)
-    works = [s for s in included if s.source_type != "software"]
-    software = [s for s in included if s.source_type == "software"]
-    return [*works, *software]
+    """Stable citation order: screened-in works first, then software.
+
+    Kept in sync with scholarly_api.citations.cite_index_map for [n] markers.
+    """
+    from scholarly_api.citations import cite_index_map
+
+    return cite_index_map(sources)
 
 
 def _source_label(source: SourceWork) -> str:
@@ -169,6 +169,8 @@ def _build_markdown(
     title: str,
     sections: list[ArticleSection],
     cited: list[SourceWork],
+    *,
+    bibliography_lines: list[str] | None = None,
 ) -> str:
     parts = [f"# {title}", ""]
     for sec in sections:
@@ -177,7 +179,13 @@ def _build_markdown(
             parts.append("")
         parts.append(sec.markdown.strip())
         parts.append("")
-    if cited:
+    if bibliography_lines:
+        parts.append("## References")
+        parts.append("")
+        for i, line in enumerate(bibliography_lines, start=1):
+            parts.append(f"{i}. {line}")
+        parts.append("")
+    elif cited:
         parts.append("## Sources")
         parts.append("")
         for i, src in enumerate(cited, start=1):
@@ -504,9 +512,9 @@ def _heuristic_compose(
         lim_bits.append(findings_cav.rstrip())
     lim_bits.append(
         "This article was composed heuristically from the evidence pack "
-        "(no LLM compose key). Citation markers are provisional; full CSL/BibTeX "
-        "polish arrives in a later phase. OA full text was preferred; closed "
-        "works contribute metadata/abstracts only."
+        "(no LLM compose key). Inline markers map to the APA bibliography "
+        "and BibTeX export. OA full text was preferred; closed works "
+        "contribute metadata/abstracts only."
     )
     if evidence and evidence.status == "paperqa_skipped":
         lim_bits.append(

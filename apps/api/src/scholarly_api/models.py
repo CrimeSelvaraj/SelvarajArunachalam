@@ -123,6 +123,35 @@ class ArticleSection(BaseModel):
     claim_ids: list[str] = Field(default_factory=list)
 
 
+class BibliographyEntry(BaseModel):
+    """One bibliography item aligned to an inline [n] citation marker."""
+
+    n: int = Field(description="1-based index matching inline [n] markers")
+    citekey: str = Field(description="BBT-inspired stable citation key")
+    source_id: str = Field(description="Matches SourceWork.openalex_id")
+    csl: dict[str, Any] = Field(default_factory=dict, description="CSL-JSON item")
+    apa: str = Field(default="", description="APA-rendered reference line")
+    bibtex: str = Field(default="", description="Single BibTeX entry")
+    cited_in_article: bool = True
+
+
+class BibliographyBundle(BaseModel):
+    """Canonical citation store for a job (Phase 8)."""
+
+    style: str = Field(default="apa", description="apa | nature | news")
+    method: str = Field(
+        default="python_apa",
+        description="python_apa | python_apa+pandoc_available",
+    )
+    entries: list[BibliographyEntry] = Field(default_factory=list)
+    csl_json: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Canonical CSL-JSON array (citekey = item id)",
+    )
+    bibtex: str = Field(default="", description="Full .bib file contents")
+    html: str = Field(default="", description="Rendered bibliography HTML footer")
+
+
 class ComposedArticle(BaseModel):
     """Persisted scholarly news article for a job (Phase 7)."""
 
@@ -209,6 +238,7 @@ class JobRecord(BaseModel):
     screening: ScreeningSummary | None = None
     evidence: EvidencePackSummary | None = None
     article: ComposedArticle | None = None
+    bibliography: BibliographyBundle | None = None
     article_id: str | None = None
     error: str | None = None
     created_at: datetime
