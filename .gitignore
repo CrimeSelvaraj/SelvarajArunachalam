@@ -36,3 +36,6 @@ htmlcov/
 # UV / Python packaging
 *.egg-info/
 .uv/
+
+# Per-job evidence packs (Phase 6)
+apps/api/data/

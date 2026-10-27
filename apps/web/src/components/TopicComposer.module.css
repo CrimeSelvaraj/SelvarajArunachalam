@@ -424,6 +424,101 @@ a.flag:hover {
   line-height: 1.45;
 }
 
+.evidence {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.evidenceMeta {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--foam-muted);
+}
+
+.findingList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.findingItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.findingKey {
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--moss-bright);
+}
+
+.findingAnswer {
+  margin: 0;
+  color: var(--foam);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.quotes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.quotesHeading {
+  margin: 0;
+  font-size: 0.74rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--amber-soft);
+}
+
+.quoteList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.quoteItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding-left: 0.65rem;
+  border-left: 2px solid rgba(63, 143, 114, 0.45);
+}
+
+.quoteText {
+  margin: 0;
+  color: rgba(232, 240, 235, 0.92);
+  font-size: 0.84rem;
+  line-height: 1.45;
+  font-style: italic;
+}
+
+.quoteSource {
+  font-size: 0.75rem;
+  color: var(--foam-muted);
+}
+
+.quoteSource a {
+  color: var(--moss-bright);
+  border-bottom: 1px solid transparent;
+}
+
+.quoteSource a:hover {
+  border-bottom-color: currentColor;
+}
+
 .secondary {
   align-self: flex-start;
   margin-top: 0.2rem;

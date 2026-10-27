@@ -9,22 +9,33 @@ cd apps/api
 uv sync
 # optional: export OPENALEX_MAILTO=you@example.com
 # optional: export GITHUB_TOKEN=ghp_…   # higher GitHub rate limits
-# optional: export OPENAI_API_KEY=…     # LLM screening; else heuristics
+# optional: export OPENAI_API_KEY=…     # screening LLM + PaperQA; else heuristics / pack-only
 uv run uvicorn scholarly_api.main:app --reload --port 8000
 ```
 
 Health check: `GET http://localhost:8000/health`
 
-## Pipeline (Phases 3–5)
+## Pipeline (Phases 3–6)
 
 - `POST /jobs` — create a research job (topic + options; `include_github` defaults true; optional `screen_max`)
 - `GET /jobs` — list recent in-memory jobs
-- `GET /jobs/{id}` — poll status, events, discovered `sources`, and `screening` summary
+- `GET /jobs/{id}` — poll status, events, `sources`, `screening`, and `evidence`
 
 Stages:
 
 1. **search** — OpenAlex (`openalex.py`) + optional GitHub (`github_client.py`)
-2. **screen** — ASReview-inspired rank / dedupe / include-exclude (`screening.py`); decisions persisted on each source
-3. **read / draft / cite** — still stubbed
+2. **screen** — ASReview-inspired rank / dedupe / include-exclude (`screening.py`)
+3. **read** — evidence pack (`evidence_pack.py`) + PaperQA adapter (`paperqa_adapter.py`)
+4. **draft / cite** — still stubbed
 
-Env: `OPENALEX_MAILTO` (recommended), `OPENALEX_API_KEY` (optional), `GITHUB_TOKEN` (optional), `OPENAI_API_KEY` (optional for screening LLM).
+### Evidence pack
+
+Per-job directory (default `apps/api/data/evidence/<job_id>/`):
+
+- OA PDFs only when `is_oa` and a PDF URL are present (no paywall bypass)
+- Abstract `.txt` files (full abstract re-fetched from OpenAlex when possible)
+- Software README `.md` files
+
+PaperQA is used as a **library** (`paper-qa` from PyPI). Without `OPENAI_API_KEY` (or compatible keys), the pack is still written and the job returns `evidence.status=paperqa_skipped` with heuristic excerpts.
+
+Env: see repo-root `.env.example` (`OPENAI_API_KEY`, `PAPERQA_*`, `EVIDENCE_PACK_ROOT`, OpenAlex/GitHub keys).

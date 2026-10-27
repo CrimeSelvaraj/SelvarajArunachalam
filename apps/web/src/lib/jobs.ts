@@ -50,6 +50,7 @@ export type SourceWork = {
   screen_decision?: ScreenDecision | null;
   screen_rationale?: string | null;
   duplicate_of?: string | null;
+  evidence_files?: string[];
 };
 
 export type ScreeningSummary = {
@@ -59,6 +60,37 @@ export type ScreeningSummary = {
   excluded_count: number;
   duplicate_count: number;
   candidate_count: number;
+};
+
+export type EvidenceQuote = {
+  id: string;
+  source_id: string;
+  quote: string;
+  summary?: string | null;
+  prompt_key?: string | null;
+  score?: number | null;
+  docname?: string | null;
+};
+
+export type EvidenceFinding = {
+  key: string;
+  question: string;
+  answer: string;
+  has_successful_answer?: boolean | null;
+  quote_ids: string[];
+};
+
+export type EvidencePackSummary = {
+  status: string;
+  method: string;
+  directory?: string | null;
+  file_count: number;
+  pdf_count: number;
+  text_count: number;
+  source_count: number;
+  skip_reason?: string | null;
+  findings: EvidenceFinding[];
+  quotes: EvidenceQuote[];
 };
 
 export function sourceKey(source: SourceWork): string {
@@ -90,11 +122,40 @@ export type JobRecord = {
   events: JobEvent[];
   sources: SourceWork[];
   screening?: ScreeningSummary | null;
+  evidence?: EvidencePackSummary | null;
   article_id: string | null;
   error: string | null;
   created_at: string;
   updated_at: string;
 };
+
+export function findingLabel(key: string): string {
+  switch (key) {
+    case "key_findings":
+      return "Key findings";
+    case "consensus":
+      return "Consensus";
+    case "caveats":
+      return "Caveats";
+    default:
+      return key.replace(/_/g, " ");
+  }
+}
+
+export function sourceById(
+  sources: SourceWork[],
+  sourceId: string,
+): SourceWork | undefined {
+  return sources.find((s) => s.openalex_id === sourceId);
+}
+
+export function shortSourceTitle(source: SourceWork | undefined, fallback: string): string {
+  if (!source) return fallback;
+  if (isSoftwareSource(source)) {
+    return source.github_full_name || source.title;
+  }
+  return source.title;
+}
 
 const API_BASE = "/api/backend";
 
