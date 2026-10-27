@@ -3,11 +3,14 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
+  bibliographyBibUrl,
+  bibliographyCslUrl,
   getJob,
   isIncluded,
   isScreenedOut,
   isSoftwareSource,
   sourceKey,
+  type BibliographyEntry,
   type JobRecord,
   type SourceWork,
 } from "@/lib/jobs";
@@ -59,12 +62,55 @@ function CandidateItem({ source }: { source: SourceWork }) {
   );
 }
 
-function citedSources(job: JobRecord): SourceWork[] {
+/** Fallback when bibliography stage has not run yet (legacy jobs). */
+function citedSourcesFallback(job: JobRecord): SourceWork[] {
   const included = job.sources.filter(isIncluded);
   const pool = included.length ? included : job.sources;
   const works = pool.filter((s) => !isSoftwareSource(s));
   const software = pool.filter((s) => isSoftwareSource(s));
   return [...works, ...software];
+}
+
+function BibliographyFooter({
+  entries,
+  style,
+  jobId,
+}: {
+  entries: BibliographyEntry[];
+  style: string;
+  jobId: string;
+}) {
+  const styleLabel = style.toUpperCase() === "APA" ? "APA" : style.toUpperCase();
+  return (
+    <nav className={styles.refNav} aria-label="Bibliography">
+      <h2 className={styles.sectionTitle}>References ({styleLabel})</h2>
+      <ol className={styles.refList}>
+        {entries.map((entry) => (
+          <li key={entry.citekey} id={`ref-${entry.n}`}>
+            <span className={styles.refNum}>[{entry.n}]</span>{" "}
+            <code className={styles.citekey}>{entry.citekey}</code>{" "}
+            <span className={styles.apa}>{entry.apa}</span>
+          </li>
+        ))}
+      </ol>
+      <div className={styles.exportRow}>
+        <a
+          className={styles.exportLink}
+          href={bibliographyBibUrl(jobId)}
+          download
+        >
+          Download BibTeX
+        </a>
+        <a
+          className={styles.exportLink}
+          href={bibliographyCslUrl(jobId)}
+          download
+        >
+          Download CSL-JSON
+        </a>
+      </div>
+    </nav>
+  );
 }
 
 export default function ArticlePage({ params }: ArticlePageProps) {
@@ -89,10 +135,14 @@ export default function ArticlePage({ params }: ArticlePageProps) {
   }, [id]);
 
   const article = job?.article ?? null;
+  const bibliography = job?.bibliography ?? null;
   const included = job?.sources.filter(isIncluded) ?? [];
   const screenedOut = job?.sources.filter(isScreenedOut) ?? [];
   const hasScreening = (job?.sources ?? []).some((s) => s.screen_decision);
-  const refs = useMemo(() => (job ? citedSources(job) : []), [job]);
+  const fallbackRefs = useMemo(
+    () => (job && !bibliography?.entries.length ? citedSourcesFallback(job) : []),
+    [job, bibliography],
+  );
 
   return (
     <main className={styles.page}>
@@ -107,6 +157,9 @@ export default function ArticlePage({ params }: ArticlePageProps) {
                 : article.status === "ready"
                   ? ` · ${article.method}`
                   : ` · ${article.status}`}
+              {bibliography
+                ? ` · ${bibliography.entries.length} refs`
+                : ""}
             </p>
             <h1 className={styles.title}>{article.title}</h1>
             {article.skip_reason ? (
@@ -116,11 +169,17 @@ export default function ArticlePage({ params }: ArticlePageProps) {
               className={styles.prose}
               dangerouslySetInnerHTML={{ __html: article.html }}
             />
-            {refs.length > 0 ? (
+            {bibliography && bibliography.entries.length > 0 ? (
+              <BibliographyFooter
+                entries={bibliography.entries}
+                style={bibliography.style}
+                jobId={id}
+              />
+            ) : fallbackRefs.length > 0 ? (
               <nav className={styles.refNav} aria-label="Sources">
                 <h2 className={styles.sectionTitle}>Citation markers</h2>
                 <ol className={styles.refList}>
-                  {refs.map((source, index) => {
+                  {fallbackRefs.map((source, index) => {
                     const n = index + 1;
                     const software = isSoftwareSource(source);
                     const href = software
@@ -144,9 +203,6 @@ export default function ArticlePage({ params }: ArticlePageProps) {
                     );
                   })}
                 </ol>
-                <p className={styles.citeStub}>
-                  Full CSL / BibTeX bibliography polish arrives in Phase 8.
-                </p>
               </nav>
             ) : null}
             {article.refused_claims.length > 0 ? (
@@ -191,6 +247,9 @@ export default function ArticlePage({ params }: ArticlePageProps) {
                 {article
                   ? `${article.claims.length} claims`
                   : "awaiting compose"}
+                {bibliography
+                  ? ` · ${bibliography.entries.length} bibliography`
+                  : ""}
               </p>
             ) : null}
             {included.length > 0 ? (

@@ -121,6 +121,25 @@ export type ComposedArticle = {
   refused_claims: string[];
 };
 
+export type BibliographyEntry = {
+  n: number;
+  citekey: string;
+  source_id: string;
+  csl: Record<string, unknown>;
+  apa: string;
+  bibtex: string;
+  cited_in_article: boolean;
+};
+
+export type BibliographyBundle = {
+  style: string;
+  method: string;
+  entries: BibliographyEntry[];
+  csl_json: Record<string, unknown>[];
+  bibtex: string;
+  html: string;
+};
+
 export function sourceKey(source: SourceWork): string {
   return source.openalex_id || source.github_full_name || source.title;
 }
@@ -152,6 +171,7 @@ export type JobRecord = {
   screening?: ScreeningSummary | null;
   evidence?: EvidencePackSummary | null;
   article?: ComposedArticle | null;
+  bibliography?: BibliographyBundle | null;
   article_id: string | null;
   error: string | null;
   created_at: string;
@@ -239,6 +259,15 @@ export async function listJobs(limit = 20): Promise<JobRecord[]> {
     throw new Error(`Failed to list jobs (${res.status})`);
   }
   return res.json();
+}
+
+/** Absolute URL for BibTeX download (browser navigation / anchor href). */
+export function bibliographyBibUrl(jobId: string): string {
+  return `${API_BASE}/jobs/${jobId}/bibliography.bib`;
+}
+
+export function bibliographyCslUrl(jobId: string): string {
+  return `${API_BASE}/jobs/${jobId}/bibliography.json`;
 }
 
 export const STAGE_LABELS: Record<JobStage, string> = {

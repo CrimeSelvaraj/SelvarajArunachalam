@@ -14,6 +14,7 @@ import {
   shortSourceTitle,
   sourceById,
   sourceKey,
+  type BibliographyBundle,
   type ComposedArticle,
   type EvidenceFinding,
   type EvidenceQuote,
@@ -306,7 +307,13 @@ function excerptText(text: string, max = 320): string {
   return `${at > 80 ? cut.slice(0, at) : cut}…`;
 }
 
-function ArticlePreview({ article }: { article: ComposedArticle }) {
+function ArticlePreview({
+  article,
+  bibliography,
+}: {
+  article: ComposedArticle;
+  bibliography?: BibliographyBundle | null;
+}) {
   return (
     <div className={styles.articlePreview}>
       <p className={styles.sourcesHeading}>Composed article</p>
@@ -315,6 +322,9 @@ function ArticlePreview({ article }: { article: ComposedArticle }) {
         {article.claims.length === 1 ? "" : "s"}
         {article.refused_claims.length
           ? ` · ${article.refused_claims.length} refused`
+          : ""}
+        {bibliography
+          ? ` · ${bibliography.entries.length} ${bibliography.style.toUpperCase()} refs`
           : ""}
       </p>
       <p className={styles.articleTitle}>{article.title}</p>
@@ -328,6 +338,16 @@ function ArticlePreview({ article }: { article: ComposedArticle }) {
           </p>
         </div>
       ))}
+      {bibliography && bibliography.entries.length > 0 ? (
+        <p className={styles.evidenceMeta}>
+          Citekeys:{" "}
+          {bibliography.entries
+            .slice(0, 4)
+            .map((e) => e.citekey)
+            .join(", ")}
+          {bibliography.entries.length > 4 ? "…" : ""}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -563,7 +583,12 @@ export function TopicComposer() {
                 </p>
               )}
 
-              {composed ? <ArticlePreview article={composed} /> : null}
+              {composed ? (
+                <ArticlePreview
+                  article={composed}
+                  bibliography={job?.bibliography}
+                />
+              ) : null}
 
               {evidence && !composed ? (
                 <EvidencePanel

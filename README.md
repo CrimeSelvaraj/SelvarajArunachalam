@@ -2,7 +2,7 @@
 
 Public web app where anyone enters a research topic and receives a **readable scholarly news article** grounded in open scholarship (OpenAlex, OA full text, public GitHub) — with transparent research progress and citation discipline.
 
-> **Status:** Phases 0–7 — monorepo scaffold, public shell with header/side nav, job API, **OpenAlex + GitHub discovery**, **ASReview-inspired screening**, **evidence pack + PaperQA adapter**, and **article composer** (LLM or heuristic). Citation CSL/BibTeX polish and pandoc export remain for later phases.
+> **Status:** Phases 0–8 — monorepo scaffold, public shell with header/side nav, job API, **OpenAlex + GitHub discovery**, **ASReview-inspired screening**, **evidence pack + PaperQA adapter**, **article composer**, and **CSL-JSON / APA bibliography + BibTeX export**. Pandoc multi-format export remains for Phase 9.
 
 ## Monorepo layout
 
@@ -19,7 +19,7 @@ docs/             Product docs
 |------|--------|
 | **Node 22+** + **pnpm** | Frontend |
 | **Python 3.12+** + **[uv](https://docs.astral.sh/uv/)** | Backend (`paper-qa` included) |
-| **pandoc** | Export sidecar (installed for later phases; unused yet) |
+| **pandoc** | Export sidecar (cite stage probes `--citeproc`; full MD/HTML/DOCX in Phase 9) |
 
 ```bash
 # pandoc (Debian/Ubuntu)
@@ -58,7 +58,9 @@ pnpm dev
 |--------|------|---------|
 | `POST` | `/jobs` | Create job `{ topic, options? }` |
 | `GET` | `/jobs` | Recent jobs (in-memory, newest first) |
-| `GET` | `/jobs/{id}` | Poll status, events, `sources`, `screening`, `evidence`, `article` |
+| `GET` | `/jobs/{id}` | Poll status, events, `sources`, `screening`, `evidence`, `article`, `bibliography` |
+| `GET` | `/jobs/{id}/bibliography.bib` | Download BibTeX (after cite stage) |
+| `GET` | `/jobs/{id}/bibliography.json` | Download canonical CSL-JSON |
 
 **Search stage (real):**
 
@@ -89,7 +91,12 @@ pnpm dev
 - Prefers LLM compose when `OPENAI_API_KEY` (or compatible) is set; otherwise a readable **heuristic template** from evidence quotes/findings
 - Persists `article` (`markdown`, `html`, `claims`, `sections`) on the job; `/a/[id]` renders HTML with inline `[n]` citation markers
 
-**Cite stage:** light stub (markers already inline; full CSL/BibTeX in Phase 8).
+**Cite stage (real, Phase 8):**
+
+- Stable **BBT-inspired citekeys** (`auth` + `year` + `veryshorttitle`, with disambiguators)
+- Canonical **CSL-JSON** stored on `job.bibliography`
+- **APA** reference lines aligned 1:1 with inline `[n]` markers
+- **BibTeX** download via `GET /jobs/{id}/bibliography.bib`
 
 ### Options
 

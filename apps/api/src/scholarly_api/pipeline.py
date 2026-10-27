@@ -1,4 +1,4 @@
-"""Research job pipeline — discovery → screen → evidence → compose; cite light."""
+"""Research job pipeline — discovery → screen → evidence → compose → cite."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 
 import httpx
 
+from scholarly_api.citations import build_bibliography
 from scholarly_api.composer import compose_article
 from scholarly_api.evidence_pack import build_evidence_pack
 from scholarly_api.github_client import search_repositories
@@ -358,24 +359,67 @@ async def run_pipeline(store: JobStore, job_id: str) -> None:
         job.updated_at = _now()
         await store.update(job)
 
-        # Cite stage — light stub (markers already inline; Phase 8 polish)
-        await asyncio.sleep(0.35)
+        # --- Phase 8: citations & bibliography ---
         job = await store.get(job_id)
         if job is None:
             return
         job.stage = JobStage.cite
         job.progress = 0.94
-        cited_n = len(article.cited_source_ids) if article else 0
         job.events.append(
             JobEvent(
                 stage=JobStage.cite,
                 message=(
-                    f"Inline citation markers attached for {cited_n} source"
-                    f"{'' if cited_n == 1 else 's'}. "
-                    "Full CSL/BibTeX bibliography polish arrives in Phase 8."
+                    "Building CSL-JSON library, stable citekeys, "
+                    f"and {(job.options.citation_style or 'apa').upper()} bibliography…"
                 ),
                 at=_now(),
-                meta={"stub": True, "cited_source_count": cited_n},
+                meta={"citation_style": job.options.citation_style},
+            )
+        )
+        job.updated_at = _now()
+        await store.update(job)
+
+        bibliography = build_bibliography(
+            job.sources,
+            citation_style=job.options.citation_style,
+            cited_source_ids=article.cited_source_ids if article else None,
+        )
+        job = await store.get(job_id)
+        if job is None:
+            return
+        job.bibliography = bibliography
+        # Enrich article markdown Sources appendix with APA lines when present
+        if job.article and bibliography.entries:
+            from scholarly_api.composer import _build_markdown, _cite_index_map
+
+            art = job.article
+            apa_lines = [
+                f"[{e.citekey}] {e.apa}" for e in bibliography.entries
+            ]
+            art.markdown = _build_markdown(
+                art.title,
+                art.sections,
+                _cite_index_map(job.sources),
+                bibliography_lines=apa_lines,
+            )
+            job.article = art
+        job.progress = 0.97
+        job.events.append(
+            JobEvent(
+                stage=JobStage.cite,
+                message=(
+                    f"Bibliography ready — {len(bibliography.entries)} CSL-JSON item"
+                    f"{'' if len(bibliography.entries) == 1 else 's'}, "
+                    f"style={bibliography.style}, method={bibliography.method}; "
+                    "BibTeX export available."
+                ),
+                at=_now(),
+                meta={
+                    "entry_count": len(bibliography.entries),
+                    "style": bibliography.style,
+                    "method": bibliography.method,
+                    "citekeys": [e.citekey for e in bibliography.entries[:12]],
+                },
             )
         )
         job.updated_at = _now()
@@ -396,6 +440,7 @@ async def run_pipeline(store: JobStore, job_id: str) -> None:
         soft_n = sum(1 for s in included if s.source_type == "software")
         ev = job.evidence
         art = job.article
+        bib = job.bibliography
         job.events.append(
             JobEvent(
                 stage=JobStage.complete,
@@ -407,6 +452,11 @@ async def run_pipeline(store: JobStore, job_id: str) -> None:
                     + (
                         f"; compose {art.method} ({art.status})"
                         if art
+                        else ""
+                    )
+                    + (
+                        f"; bibliography {len(bib.entries)} ({bib.style})"
+                        if bib
                         else ""
                     )
                     + (
@@ -431,6 +481,13 @@ async def run_pipeline(store: JobStore, job_id: str) -> None:
                         "title": art.title,
                     }
                     if art
+                    else None,
+                    "bibliography": {
+                        "entry_count": len(bib.entries),
+                        "style": bib.style,
+                        "method": bib.method,
+                    }
+                    if bib
                     else None,
                 },
             )

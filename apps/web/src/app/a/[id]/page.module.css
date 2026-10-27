@@ -238,11 +238,17 @@
 }
 
 .refList {
+  list-style: none;
   margin: 0 0 0.75rem;
-  padding-left: 1.25rem;
+  padding-left: 0;
   color: var(--foam);
   font-size: 0.9rem;
   line-height: 1.45;
+}
+
+.refList li {
+  margin: 0 0 0.65rem;
+  padding-left: 0;
 }
 
 .refList a {
@@ -260,11 +266,35 @@
   font-variant-numeric: tabular-nums;
 }
 
-.citeStub {
-  margin: 0;
-  color: var(--foam-muted);
-  font-size: 0.8rem;
-  font-style: italic;
+.citekey {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.78em;
+  color: var(--moss-bright);
+  margin-right: 0.25rem;
+}
+
+.apa {
+  color: var(--foam);
+}
+
+.exportRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem 1.25rem;
+  margin-top: 0.35rem;
+}
+
+.exportLink {
+  color: var(--amber-soft);
+  border-bottom: 1px solid rgba(212, 168, 87, 0.35);
+  padding-bottom: 0.05rem;
+  font-size: 0.88rem;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.exportLink:hover {
+  color: var(--moss-bright);
+  border-bottom-color: var(--moss-bright);
 }
 
 .refused {
