@@ -23,6 +23,22 @@ export type JobEvent = {
   meta?: Record<string, unknown>;
 };
 
+export type SourceWork = {
+  openalex_id: string;
+  doi: string | null;
+  title: string;
+  authors: string[];
+  year: number | null;
+  abstract_snippet: string | null;
+  is_oa: boolean;
+  oa_status: string | null;
+  oa_url: string | null;
+  pdf_url: string | null;
+  landing_url: string | null;
+  cited_by_count: number | null;
+  source_type: string;
+};
+
 export type JobRecord = {
   id: string;
   topic: string;
@@ -31,6 +47,7 @@ export type JobRecord = {
   stage: JobStage;
   progress: number;
   events: JobEvent[];
+  sources: SourceWork[];
   article_id: string | null;
   error: string | null;
   created_at: string;
@@ -66,6 +83,16 @@ export async function getJob(jobId: string): Promise<JobRecord> {
   const res = await fetch(`${API_BASE}/jobs/${jobId}`, { cache: "no-store" });
   if (!res.ok) {
     throw new Error(`Failed to load job (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function listJobs(limit = 20): Promise<JobRecord[]> {
+  const res = await fetch(`${API_BASE}/jobs?limit=${limit}`, {
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to list jobs (${res.status})`);
   }
   return res.json();
 }

@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime, timezone
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from scholarly_api import __version__
@@ -18,7 +18,7 @@ from scholarly_api.models import (
     JobStage,
     JobStatus,
 )
-from scholarly_api.pipeline_stub import run_stub_pipeline
+from scholarly_api.pipeline import run_pipeline
 from scholarly_api.store import store
 
 load_dotenv()
@@ -56,6 +56,11 @@ async def health() -> HealthResponse:
     return HealthResponse(status="ok", service="proofpress-api", version=__version__)
 
 
+@app.get("/jobs", response_model=list[JobRecord])
+async def list_jobs(limit: int = Query(default=20, ge=1, le=100)) -> list[JobRecord]:
+    return await store.list_recent(limit)
+
+
 @app.post("/jobs", response_model=JobRecord, status_code=201)
 async def create_job(body: CreateJobRequest) -> JobRecord:
     topic = body.topic.strip()
@@ -74,16 +79,16 @@ async def create_job(body: CreateJobRequest) -> JobRecord:
         events=[
             JobEvent(
                 stage=JobStage.queued,
-                message="Job queued — stub pipeline will simulate research stages.",
+                message="Job queued — OpenAlex discovery will run next.",
                 at=now,
-                meta={"stub": True},
+                meta={"provider": "openalex"},
             )
         ],
         created_at=now,
         updated_at=now,
     )
     await store.put(job)
-    asyncio.create_task(run_stub_pipeline(store, job_id))
+    asyncio.create_task(run_pipeline(store, job_id))
     return job
 
 

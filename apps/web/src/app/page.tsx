@@ -10,18 +10,15 @@ export default function HomePage() {
         <div className={styles.grain} />
       </div>
 
-      <header className={styles.brandBar}>
-        <p className={styles.brand}>ProofPress</p>
-      </header>
-
       <section className={styles.hero}>
+        <p className={styles.brand}>ProofPress</p>
         <h1 className={styles.headline}>
           Scholarly news,
           <span className={styles.headlineBreak}> grounded in open research.</span>
         </h1>
         <p className={styles.lede}>
-          Enter a topic. Watch the search → screen → read → draft → cite pipeline
-          unfold, then read a citation-aware brief — not an uncited essay.
+          Enter a topic. OpenAlex discovery finds candidate works; later stages
+          will screen, read, draft, and cite — not an uncited essay.
         </p>
         <TopicComposer />
       </section>
