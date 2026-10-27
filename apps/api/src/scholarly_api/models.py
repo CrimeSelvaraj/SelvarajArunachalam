@@ -47,7 +47,7 @@ class JobEvent(BaseModel):
 
 
 class SourceWork(BaseModel):
-    """OpenAlex work candidate persisted on the job after discovery."""
+    """Discovery candidate — OpenAlex work (`work`) or GitHub repo (`software`)."""
 
     openalex_id: str
     doi: str | None = None
@@ -61,7 +61,17 @@ class SourceWork(BaseModel):
     pdf_url: str | None = None
     landing_url: str | None = None
     cited_by_count: int | None = None
-    source_type: str = "work"
+    source_type: str = Field(
+        default="work",
+        description="work | software",
+    )
+    # GitHub / software fields (Phase 4)
+    github_full_name: str | None = None
+    html_url: str | None = None
+    stars: int | None = None
+    license_spdx: str | None = None
+    readme_snippet: str | None = None
+    citation_cff: str | None = None
 
 
 class JobRecord(BaseModel):

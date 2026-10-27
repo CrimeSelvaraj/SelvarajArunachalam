@@ -16,7 +16,10 @@ export default function SettingsPage() {
         <ul className={styles.list}>
           <li>Depth — quick (8 works) / deep (12 works) via OpenAlex</li>
           <li>Citation style — APA / Nature / news (composer later)</li>
-          <li>Include GitHub — reserved for Phase 4</li>
+          <li>
+            Include GitHub — toggle under Research options on the landing composer
+            (default on; capped repo search with README + CITATION.cff)
+          </li>
         </ul>
         <Link href="/" className={styles.link}>
           ← Back to generate

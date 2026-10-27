@@ -7,6 +7,8 @@ import {
   STAGE_LABELS,
   createJob,
   getJob,
+  isSoftwareSource,
+  sourceKey,
   type JobRecord,
   type JobStage,
   type SourceWork,
@@ -23,14 +25,131 @@ function stageIndex(stage: JobStage): number {
 }
 
 function authorLine(work: SourceWork): string {
+  if (isSoftwareSource(work)) {
+    if (!work.authors.length) return "Maintainer unknown";
+    return `Maintainer · ${work.authors[0]}`;
+  }
   if (!work.authors.length) return "Unknown authors";
   if (work.authors.length <= 2) return work.authors.join(", ");
   return `${work.authors[0]} et al.`;
 }
 
+function WorkSourceItem({ work }: { work: SourceWork }) {
+  const href =
+    work.landing_url || work.doi || work.openalex_id || undefined;
+  return (
+    <li className={styles.sourceItem} data-kind="work">
+      <div className={styles.sourceTop}>
+        <span className={styles.kindBadge} data-kind="work">
+          Paper
+        </span>
+        {href ? (
+          <a
+            href={href}
+            target="_blank"
+            rel="noreferrer"
+            className={styles.sourceTitle}
+          >
+            {work.title}
+          </a>
+        ) : (
+          <span className={styles.sourceTitle}>{work.title}</span>
+        )}
+        <span className={styles.sourceMeta}>
+          {authorLine(work)}
+          {work.year ? ` · ${work.year}` : ""}
+        </span>
+      </div>
+      <div className={styles.sourceFlags}>
+        {work.is_oa ? (
+          <span className={styles.flag} data-kind="oa">
+            OA{work.oa_status ? ` · ${work.oa_status}` : ""}
+          </span>
+        ) : (
+          <span className={styles.flag}>Closed / unknown</span>
+        )}
+        {work.pdf_url ? (
+          <a
+            href={work.pdf_url}
+            target="_blank"
+            rel="noreferrer"
+            className={styles.flag}
+            data-kind="pdf"
+          >
+            PDF
+          </a>
+        ) : null}
+        {work.doi ? (
+          <span className={styles.flag}>
+            {work.doi.replace("https://doi.org/", "")}
+          </span>
+        ) : null}
+      </div>
+      {work.abstract_snippet ? (
+        <p className={styles.snippet}>{work.abstract_snippet}</p>
+      ) : null}
+    </li>
+  );
+}
+
+function SoftwareSourceItem({ repo }: { repo: SourceWork }) {
+  const href = repo.html_url || repo.landing_url || undefined;
+  const displayTitle = repo.github_full_name || repo.title;
+  return (
+    <li className={styles.sourceItem} data-kind="software">
+      <div className={styles.sourceTop}>
+        <span className={styles.kindBadge} data-kind="software">
+          Software
+        </span>
+        {href ? (
+          <a
+            href={href}
+            target="_blank"
+            rel="noreferrer"
+            className={styles.sourceTitle}
+          >
+            {displayTitle}
+          </a>
+        ) : (
+          <span className={styles.sourceTitle}>{displayTitle}</span>
+        )}
+        <span className={styles.sourceMeta}>
+          {authorLine(repo)}
+          {repo.stars != null ? ` · ★ ${repo.stars.toLocaleString()}` : ""}
+          {repo.year ? ` · updated ${repo.year}` : ""}
+        </span>
+      </div>
+      <div className={styles.sourceFlags}>
+        {repo.license_spdx ? (
+          <span className={styles.flag} data-kind="license">
+            {repo.license_spdx}
+          </span>
+        ) : (
+          <span className={styles.flag}>License unknown</span>
+        )}
+        {repo.citation_cff ? (
+          <span className={styles.flag} data-kind="cff">
+            CITATION.cff
+          </span>
+        ) : null}
+      </div>
+      {repo.readme_snippet || repo.abstract_snippet ? (
+        <p className={styles.snippet}>
+          {repo.readme_snippet || repo.abstract_snippet}
+        </p>
+      ) : null}
+      {repo.citation_cff ? (
+        <pre className={styles.cffSnippet}>{repo.citation_cff}</pre>
+      ) : null}
+    </li>
+  );
+}
+
 export function TopicComposer() {
   const router = useRouter();
   const [topic, setTopic] = useState("");
+  const [includeGithub, setIncludeGithub] = useState(true);
+  const [showOptions, setShowOptions] = useState(false);
   const [phase, setPhase] = useState<Phase>("idle");
   const [job, setJob] = useState<JobRecord | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -86,7 +205,7 @@ export function TopicComposer() {
     setJob(null);
 
     try {
-      const created = await createJob(trimmed);
+      const created = await createJob(trimmed, { include_github: includeGithub });
       setJob(created);
       setPhase("running");
       startPolling(created.id);
@@ -100,6 +219,8 @@ export function TopicComposer() {
   const latestMessage =
     job?.events.length ? job.events[job.events.length - 1].message : null;
   const sources = job?.sources ?? [];
+  const paperSources = sources.filter((s) => !isSoftwareSource(s));
+  const softwareSources = sources.filter((s) => isSoftwareSource(s));
 
   return (
     <div className={styles.composer}>
@@ -129,6 +250,28 @@ export function TopicComposer() {
               ? "Researching…"
               : "Generate article"}
           </button>
+        </div>
+        <div className={styles.optionsRow}>
+          <button
+            type="button"
+            className={styles.optionsToggle}
+            onClick={() => setShowOptions((v) => !v)}
+            aria-expanded={showOptions}
+            disabled={phase === "submitting" || phase === "running"}
+          >
+            Research options
+          </button>
+          {showOptions ? (
+            <label className={styles.optionCheck}>
+              <input
+                type="checkbox"
+                checked={includeGithub}
+                onChange={(e) => setIncludeGithub(e.target.checked)}
+                disabled={phase === "submitting" || phase === "running"}
+              />
+              Include GitHub repositories (software sources)
+            </label>
+          ) : null}
         </div>
       </form>
 
@@ -175,67 +318,36 @@ export function TopicComposer() {
           ) : null}
 
           {sources.length > 0 ? (
-            <div className={styles.sources}>
-              <p className={styles.sourcesHeading}>
-                OpenAlex works ({sources.length})
+            <div className={styles.sourcesPanel}>
+              <p className={styles.sourcesSummary}>
+                {paperSources.length} paper
+                {paperSources.length === 1 ? "" : "s"}
+                {softwareSources.length > 0 || job?.options.include_github
+                  ? ` · ${softwareSources.length} software repo${
+                      softwareSources.length === 1 ? "" : "s"
+                    }`
+                  : ""}
               </p>
-              <ol className={styles.sourceList}>
-                {sources.map((work) => {
-                  const href =
-                    work.landing_url ||
-                    work.doi ||
-                    work.openalex_id ||
-                    undefined;
-                  return (
-                    <li key={work.openalex_id} className={styles.sourceItem}>
-                      <div className={styles.sourceTop}>
-                        {href ? (
-                          <a
-                            href={href}
-                            target="_blank"
-                            rel="noreferrer"
-                            className={styles.sourceTitle}
-                          >
-                            {work.title}
-                          </a>
-                        ) : (
-                          <span className={styles.sourceTitle}>{work.title}</span>
-                        )}
-                        <span className={styles.sourceMeta}>
-                          {authorLine(work)}
-                          {work.year ? ` · ${work.year}` : ""}
-                        </span>
-                      </div>
-                      <div className={styles.sourceFlags}>
-                        {work.is_oa ? (
-                          <span className={styles.flag} data-kind="oa">
-                            OA{work.oa_status ? ` · ${work.oa_status}` : ""}
-                          </span>
-                        ) : (
-                          <span className={styles.flag}>Closed / unknown</span>
-                        )}
-                        {work.pdf_url ? (
-                          <a
-                            href={work.pdf_url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className={styles.flag}
-                            data-kind="pdf"
-                          >
-                            PDF
-                          </a>
-                        ) : null}
-                        {work.doi ? (
-                          <span className={styles.flag}>{work.doi.replace("https://doi.org/", "")}</span>
-                        ) : null}
-                      </div>
-                      {work.abstract_snippet ? (
-                        <p className={styles.snippet}>{work.abstract_snippet}</p>
-                      ) : null}
-                    </li>
-                  );
-                })}
-              </ol>
+              {paperSources.length > 0 ? (
+                <div className={styles.sources}>
+                  <p className={styles.sourcesHeading}>Scholarly works</p>
+                  <ol className={styles.sourceList}>
+                    {paperSources.map((work) => (
+                      <WorkSourceItem key={sourceKey(work)} work={work} />
+                    ))}
+                  </ol>
+                </div>
+              ) : null}
+              {softwareSources.length > 0 ? (
+                <div className={styles.sources}>
+                  <p className={styles.sourcesHeading}>GitHub software</p>
+                  <ol className={styles.sourceList}>
+                    {softwareSources.map((repo) => (
+                      <SoftwareSourceItem key={sourceKey(repo)} repo={repo} />
+                    ))}
+                  </ol>
+                </div>
+              ) : null}
             </div>
           ) : null}
 

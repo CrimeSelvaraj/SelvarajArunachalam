@@ -79,9 +79,19 @@ async def create_job(body: CreateJobRequest) -> JobRecord:
         events=[
             JobEvent(
                 stage=JobStage.queued,
-                message="Job queued — OpenAlex discovery will run next.",
+                message=(
+                    "Job queued — OpenAlex and GitHub discovery will run next."
+                    if body.options.include_github
+                    else "Job queued — OpenAlex discovery will run next."
+                ),
                 at=now,
-                meta={"provider": "openalex"},
+                meta={
+                    "providers": (
+                        ["openalex", "github"]
+                        if body.options.include_github
+                        else ["openalex"]
+                    )
+                },
             )
         ],
         created_at=now,

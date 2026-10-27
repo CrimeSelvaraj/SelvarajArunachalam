@@ -34,7 +34,7 @@ export default function JobsPage() {
         <h1 className={styles.title}>This session</h1>
         <p className={styles.lede}>
           Jobs are stored in-memory on the API process — restart clears the
-          list. OpenAlex sources are attached once search finishes.
+          list. OpenAlex works and GitHub repos are attached once search finishes.
         </p>
 
         {error ? <p className={styles.empty}>{error}</p> : null}
@@ -46,7 +46,7 @@ export default function JobsPage() {
             <Link href="/" className={styles.link}>
               Generate an article
             </Link>{" "}
-            to see OpenAlex discovery here.
+            to see discovery candidates here.
           </p>
         ) : (
           <ul className={styles.jobList}>
@@ -61,7 +61,15 @@ export default function JobsPage() {
                 <span className={styles.jobMeta}>
                   {job.status} · {job.stage}
                   {job.sources?.length
-                    ? ` · ${job.sources.length} OpenAlex works`
+                    ? (() => {
+                        const works = job.sources.filter(
+                          (s) => s.source_type !== "software",
+                        ).length;
+                        const repos = job.sources.filter(
+                          (s) => s.source_type === "software",
+                        ).length;
+                        return ` · ${works} papers · ${repos} repos`;
+                      })()
                     : ""}
                 </span>
               </li>
