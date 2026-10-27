@@ -1,0 +1,10 @@
+{
+  "appId": "app.atoz.workshop",
+  "appName": "ATOZ",
+  "webDir": "out",
+  "backgroundColor": "#f3ecdf",
+  "server": {
+    "androidScheme": "https",
+    "iosScheme": "https"
+  }
+}

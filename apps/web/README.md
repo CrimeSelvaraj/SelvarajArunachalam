@@ -1,10 +1,12 @@
-# ProofPress web (`apps/web`)
+# ATOZ web
 
-Next.js App Router public shell.
+Next.js app for the ATOZ workshop. The production build is a static export in `out/`, which Capacitor loads on iOS and Android.
 
 ```bash
 pnpm install
 pnpm dev
+pnpm build
+pnpm cap:sync
 ```
 
-Set `API_ORIGIN` (default `http://127.0.0.1:8000`) so `/api/backend/*` rewrites reach the FastAPI stub.
+See the repository README for the tagline and the mobile steps.

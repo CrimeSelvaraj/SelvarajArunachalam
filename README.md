@@ -1,69 +1,56 @@
-# ProofPress — AI Scholarly News Article Generator
+# ATOZ
 
-Public web app where anyone enters a research topic and receives a **readable scholarly news article** grounded in open scholarship (OpenAlex, OA full text, public GitHub) — with transparent research progress and citation discipline.
+ATOZ is a workshop for making things, from a first sentence to a finished piece. One web app, and the same app as an installable shell for iOS and Android.
 
-> **Status:** Phases 0–2 shipped — monorepo scaffold, public landing shell, and stub job API with fake pipeline stages. Real discovery / PaperQA / export land in later phases (see project build plan).
+**Tagline:** The whole alphabet of making, on one bench.
 
-## Monorepo layout
+Open a bench, run its action, and see a result in the browser. Portrait playback, voice, node graphs, votes, studios, jobs, and PDF reading are on-device previews. They are not the full upstream engines. This repo does not submit anything to an app store.
 
-```
-apps/web          Next.js (App Router) public site
-apps/api          FastAPI job orchestrator
-packages/shared   Shared types / contracts (placeholder)
-docs/             Product docs
-```
+## Web
 
-## Prerequisites
-
-| Tool | Notes |
-|------|--------|
-| **Node 22+** + **pnpm** | Frontend |
-| **Python 3.12+** + **[uv](https://docs.astral.sh/uv/)** | Backend |
-| **pandoc** | Export sidecar (installed for later phases; unused by stubs) |
-
-Install tooling if missing:
+From the repo root, with [pnpm](https://pnpm.io) available:
 
 ```bash
-# pandoc (Debian/Ubuntu)
-sudo apt-get update && sudo apt-get install -y pandoc
-
-# uv
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-
-## Run locally
-
-```bash
-cp .env.example .env
-
-# API (terminal 1)
-cd apps/api
-uv sync
-uv run uvicorn scholarly_api.main:app --reload --port 8000
-
-# Web (terminal 2)
 cd apps/web
 pnpm install
 pnpm dev
 ```
 
-- Site: http://localhost:3000  
-- API health: http://localhost:8000/health  
-- Browser calls go through Next rewrites: `/api/backend/*` → FastAPI
+Open http://localhost:3000
 
-## Job API stub (Phase 2)
+Production build (also `npm run build` from the repo root):
 
-| Method | Path | Purpose |
-|--------|------|---------|
-| `POST` | `/jobs` | Create job `{ topic, options? }` |
-| `GET` | `/jobs/{id}` | Poll status + stage events |
+```bash
+cd apps/web
+pnpm build
+```
 
-Simulated stages: **search → screen → read → draft → cite → complete**. No OpenAlex / GitHub / LLM calls yet.
+The static site is written to `apps/web/out`.
 
-## Environment variables
+## Mobile
 
-See [`.env.example`](.env.example). LLM / OpenAlex / GitHub keys are listed for later phases and are **not** required for the stub.
+iOS and Android are a Capacitor shell around that static site. The native projects live in `apps/web/ios` and `apps/web/android`. You need macOS with Xcode for iOS, or Android Studio for Android.
 
-## License
+```bash
+cd apps/web
+pnpm install
+pnpm cap:sync
+pnpm cap:ios       # opens Xcode
+pnpm cap:android   # opens Android Studio
+```
 
-See repository LICENSE when added; generated articles and disclosure wording are TBD.
+Run the ATOZ target on a simulator or a device from Xcode or Android Studio.
+
+A phone browser can also open the site full screen (Add to Home Screen). It is the same screens, sized for a thumb.
+
+## What these previews do not do
+
+Speech uses the device speech engine and, if you allow it, the microphone. Files you open in RevPDF stay in the browser. Nothing in these benches is sent to a model host.
+
+- HeyGem plays a portrait and, when the device can, speaks the line. It does not render a video avatar.
+- OmniVoice stores a pitch and pace from your sample. It is not a neural voice clone.
+- ComfyUI here is a small node canvas. It does not run the ComfyUI engine.
+- Pinocchio sets joint angles and plays a pose. It is not a physics solver.
+- RevPDF reads text files, and PDFs whose letters are stored as plain text. Compressed or scanned PDFs show an error instead of a blank page.
+
+`apps/api` is an earlier FastAPI stub and is not used by ATOZ.

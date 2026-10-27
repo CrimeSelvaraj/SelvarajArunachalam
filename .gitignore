@@ -36,3 +36,16 @@ htmlcov/
 # UV / Python packaging
 *.egg-info/
 .uv/
+
+# Capacitor native build output
+apps/web/android/.gradle/
+apps/web/android/build/
+apps/web/android/app/build/
+apps/web/android/capacitor-cordova-android-plugins/build/
+apps/web/android/local.properties
+apps/web/android/captures/
+apps/web/ios/App/Pods/
+apps/web/ios/App/build/
+apps/web/ios/DerivedData/
+apps/web/ios/App/App.xcworkspace/xcuserdata/
+*.xcuserstate

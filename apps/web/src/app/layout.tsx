@@ -1,42 +1,51 @@
-import type { Metadata } from "next";
-import { Newsreader, Sora } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Fraunces, Outfit } from "next/font/google";
+import { Shell } from "@/components/Shell";
+import { StoreProvider } from "@/components/StoreProvider";
 import "./globals.css";
 
-const newsreader = Newsreader({
+const display = Fraunces({
   subsets: ["latin"],
-  variable: "--font-newsreader",
+  weight: ["500", "600", "700"],
+  variable: "--font-display",
   display: "swap",
-  style: ["normal", "italic"],
 });
 
-const sora = Sora({
+const sans = Outfit({
   subsets: ["latin"],
-  variable: "--font-sora",
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-sans",
   display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "ProofPress — Scholarly news, grounded",
-  description:
-    "Enter a research topic. ProofPress searches open scholarship and drafts a readable scholarly news article with transparent sourcing.",
+  title: {
+    default: "ATOZ",
+    template: "%s · ATOZ",
+  },
+  description: "The whole alphabet of making, on one bench.",
+  applicationName: "ATOZ",
+  appleWebApp: {
+    capable: true,
+    title: "ATOZ",
+    statusBarStyle: "default",
+  },
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#f3ecdf",
+  viewportFit: "cover",
+};
+
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${newsreader.variable} ${sora.variable}`}>
-      <body
-        style={
-          {
-            ["--font-display" as string]: "var(--font-newsreader), serif",
-            ["--font-sans" as string]: "var(--font-sora), sans-serif",
-          } as React.CSSProperties
-        }
-      >
-        {children}
+    <html lang="en" className={`${display.variable} ${sans.variable}`}>
+      <body>
+        <StoreProvider>
+          <Shell>{children}</Shell>
+        </StoreProvider>
       </body>
     </html>
   );

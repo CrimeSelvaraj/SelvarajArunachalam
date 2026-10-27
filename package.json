@@ -1,0 +1,13 @@
+{
+  "name": "atoz",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --dir apps/web dev",
+    "build": "pnpm --dir apps/web build",
+    "lint": "pnpm --dir apps/web lint",
+    "typecheck": "pnpm --dir apps/web typecheck",
+    "cap:sync": "pnpm --dir apps/web cap:sync",
+    "cap:ios": "pnpm --dir apps/web cap:ios",
+    "cap:android": "pnpm --dir apps/web cap:android"
+  }
+}

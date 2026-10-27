@@ -1,5 +1,5 @@
 # Docs
 
-Product and architecture notes for ProofPress.
+ATOZ is the workshop in `apps/web`: a prompt to start, then benches for portraits, voice, transcripts, node graphs, learning tracks, side-by-side votes, a rig preview, ten studios, a job list, and a PDF desk.
 
-The approved phased build plan lives in the project agent store (`docs/build-plan.md`). Implementation milestones land as PRs against this monorepo.
+How to run the web app and the iOS / Android shell is in the repository README.

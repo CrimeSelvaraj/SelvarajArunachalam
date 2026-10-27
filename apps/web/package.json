@@ -7,14 +7,21 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "cap:sync": "pnpm build && cap sync",
+    "cap:ios": "pnpm cap:sync && cap open ios",
+    "cap:android": "pnpm cap:sync && cap open android"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/core": "^8.5.3",
+    "@capacitor/ios": "^8.5.3",
     "next": "16.4.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.3",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
