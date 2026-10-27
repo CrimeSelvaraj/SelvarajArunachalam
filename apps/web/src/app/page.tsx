@@ -17,8 +17,9 @@ export default function HomePage() {
           <span className={styles.headlineBreak}> grounded in open research.</span>
         </h1>
         <p className={styles.lede}>
-          Enter a topic. OpenAlex discovery finds candidate works; later stages
-          will screen, read, draft, and cite — not an uncited essay.
+          Enter a topic. OpenAlex and GitHub discovery find candidates; we
+          screen them for relevance, then later stages will read, draft, and
+          cite — not an uncited essay.
         </p>
         <TopicComposer />
       </section>
