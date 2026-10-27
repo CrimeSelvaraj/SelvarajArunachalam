@@ -4,10 +4,25 @@ Public web app where anyone enters a research topic and receives a **readable sc
 
 > **Status:** Phases 0–3 — monorepo scaffold, public shell with header/side nav, job API, and **real OpenAlex discovery**. Screening / PaperQA / compose / export remain stubbed.
 
+## LOOP READ
+
+Speed reader for files you already own. It is its own Next.js app and does not use the ProofPress API.
+
+```bash
+cd apps/loop-read
+pnpm install
+pnpm dev
+```
+
+Site: http://localhost:3000 (stop ProofPress first, or run `pnpm exec next dev --turbopack -p 3210`).
+
+Install, demo email codes, and demo PayPal unlock: [apps/loop-read/README.md](apps/loop-read/README.md).
+
 ## Monorepo layout
 
 ```
 apps/web          Next.js (App Router) public site
+apps/loop-read    LOOP READ speed reader
 apps/api          FastAPI job orchestrator + OpenAlex client
 packages/shared   Shared types / contracts (placeholder)
 docs/             Product docs

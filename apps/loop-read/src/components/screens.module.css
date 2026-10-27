@@ -1,0 +1,273 @@
+.narrow,
+.wide {
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.narrow {
+  max-width: 680px;
+}
+
+.wide {
+  max-width: 920px;
+}
+
+.kicker {
+  margin: 0;
+  color: var(--teal);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.lede {
+  margin: 0;
+  font-size: 1.12rem;
+  max-width: 40rem;
+}
+
+.hero {
+  display: grid;
+  gap: 1.25rem;
+}
+
+@media (min-width: 800px) {
+  .hero {
+    grid-template-columns: 1.1fr 0.9fr;
+    align-items: center;
+  }
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.primary,
+.secondary,
+.danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  border-radius: 999px;
+  padding: 0 1.1rem;
+  text-decoration: none;
+  cursor: pointer;
+  border: 0;
+  font-weight: 650;
+}
+
+.primary {
+  background: var(--teal);
+  color: white;
+}
+
+.secondary,
+.danger {
+  background: var(--card);
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+
+.danger {
+  color: var(--danger);
+}
+
+.primary:disabled,
+.secondary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.steps li {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.7rem 0.85rem;
+}
+
+.note,
+.hint {
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+.card,
+.book {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1rem 1.05rem;
+  box-shadow: var(--shadow);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.92rem;
+}
+
+.field input,
+.field select {
+  min-height: 44px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: white;
+  padding: 0 0.75rem;
+}
+
+.code {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.28em;
+  font-size: 1.4rem;
+}
+
+.banner {
+  background: var(--warn-bg);
+  color: var(--warn-ink);
+  border-radius: 14px;
+  padding: 0.85rem 1rem;
+}
+
+.codeDigits {
+  margin: 0.35rem 0 0;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  letter-spacing: 0.22em;
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.alert {
+  background: #fde8e4;
+  color: var(--danger);
+  border-radius: 12px;
+  padding: 0.75rem 0.9rem;
+  margin: 0;
+}
+
+.status {
+  background: var(--teal-soft);
+  color: var(--teal-ink);
+  border-radius: 12px;
+  padding: 0.75rem 0.9rem;
+  margin: 0;
+}
+
+.price {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 3rem;
+  margin: 0;
+  letter-spacing: -0.04em;
+}
+
+.price span {
+  font-family: var(--font-sans), sans-serif;
+  font-size: 1rem;
+  letter-spacing: 0;
+  color: var(--ink-soft);
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: end;
+  justify-content: space-between;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.book h2,
+.badge h2 {
+  margin: 0.15rem 0;
+  font-size: 1.45rem;
+}
+
+.bookTop,
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 0.55rem;
+  border-radius: 999px;
+  background: var(--teal-soft);
+  color: var(--teal-ink);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.gold {
+  background: #f5e6c8;
+  color: var(--gold);
+}
+
+.drop {
+  border: 1.5px dashed var(--line);
+  border-radius: 16px;
+  padding: 1rem;
+  background: rgba(255, 253, 248, 0.7);
+}
+
+.badge {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.85rem;
+  align-items: center;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.9rem 1rem;
+}
+
+.mark {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #f5e6c8;
+  color: var(--gold);
+}
+
+.inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
