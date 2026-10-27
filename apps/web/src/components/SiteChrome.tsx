@@ -44,7 +44,7 @@ const SIDE_GROUPS: NavGroup[] = [
       {
         href: "/docs",
         label: "Docs & export",
-        hint: "Formats and cite hints (coming soon)",
+        hint: "Pandoc MD/HTML/DOCX + BibTeX",
       },
     ],
   },
