@@ -104,6 +104,49 @@ class EvidencePackSummary(BaseModel):
     quotes: list[EvidenceQuote] = Field(default_factory=list)
 
 
+class ArticleClaim(BaseModel):
+    """A factual claim in the composed article mapped to source ids."""
+
+    id: str
+    text: str
+    source_ids: list[str] = Field(default_factory=list)
+    quote_ids: list[str] = Field(default_factory=list)
+    supported: bool = True
+
+
+class ArticleSection(BaseModel):
+    """One article section (lede, body, why it matters, limitations)."""
+
+    key: str = Field(description="lede | body | why_it_matters | limitations")
+    heading: str | None = None
+    markdown: str
+    claim_ids: list[str] = Field(default_factory=list)
+
+
+class ComposedArticle(BaseModel):
+    """Persisted scholarly news article for a job (Phase 7)."""
+
+    title: str
+    status: str = Field(
+        default="pending",
+        description="ready | heuristic | failed",
+    )
+    method: str = Field(
+        default="stubbed",
+        description="llm:<model> | heuristic_template | stubbed",
+    )
+    markdown: str = ""
+    html: str = ""
+    sections: list[ArticleSection] = Field(default_factory=list)
+    claims: list[ArticleClaim] = Field(default_factory=list)
+    cited_source_ids: list[str] = Field(default_factory=list)
+    skip_reason: str | None = None
+    refused_claims: list[str] = Field(
+        default_factory=list,
+        description="Sensational or unsupported claims that were refused",
+    )
+
+
 class CreateJobRequest(BaseModel):
     topic: str = Field(..., min_length=3, max_length=500)
     options: JobOptions = Field(default_factory=JobOptions)
@@ -165,6 +208,7 @@ class JobRecord(BaseModel):
     sources: list[SourceWork] = Field(default_factory=list)
     screening: ScreeningSummary | None = None
     evidence: EvidencePackSummary | None = None
+    article: ComposedArticle | None = None
     article_id: str | None = None
     error: str | None = None
     created_at: datetime

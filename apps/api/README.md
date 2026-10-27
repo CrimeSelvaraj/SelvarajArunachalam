@@ -9,24 +9,25 @@ cd apps/api
 uv sync
 # optional: export OPENALEX_MAILTO=you@example.com
 # optional: export GITHUB_TOKEN=ghp_…   # higher GitHub rate limits
-# optional: export OPENAI_API_KEY=…     # screening LLM + PaperQA; else heuristics / pack-only
+# optional: export OPENAI_API_KEY=…     # screening + PaperQA + compose; else heuristics
 uv run uvicorn scholarly_api.main:app --reload --port 8000
 ```
 
 Health check: `GET http://localhost:8000/health`
 
-## Pipeline (Phases 3–6)
+## Pipeline (Phases 3–7)
 
 - `POST /jobs` — create a research job (topic + options; `include_github` defaults true; optional `screen_max`)
 - `GET /jobs` — list recent in-memory jobs
-- `GET /jobs/{id}` — poll status, events, `sources`, `screening`, and `evidence`
+- `GET /jobs/{id}` — poll status, events, `sources`, `screening`, `evidence`, and `article`
 
 Stages:
 
 1. **search** — OpenAlex (`openalex.py`) + optional GitHub (`github_client.py`)
 2. **screen** — ASReview-inspired rank / dedupe / include-exclude (`screening.py`)
 3. **read** — evidence pack (`evidence_pack.py`) + PaperQA adapter (`paperqa_adapter.py`)
-4. **draft / cite** — still stubbed
+4. **draft** — article composer (`composer.py`) — LLM or heuristic template
+5. **cite** — light stub (inline markers present; CSL/BibTeX in Phase 8)
 
 ### Evidence pack
 
@@ -38,4 +39,8 @@ Per-job directory (default `apps/api/data/evidence/<job_id>/`):
 
 PaperQA is used as a **library** (`paper-qa` from PyPI). Without `OPENAI_API_KEY` (or compatible keys), the pack is still written and the job returns `evidence.status=paperqa_skipped` with heuristic excerpts.
 
-Env: see repo-root `.env.example` (`OPENAI_API_KEY`, `PAPERQA_*`, `EVIDENCE_PACK_ROOT`, OpenAlex/GitHub keys).
+### Article composer
+
+`composer.py` builds news structure (lede / body / why it matters / limitations) with a claim→source map. Sensational unsupported claims are refused. Without an LLM key, a readable heuristic article is still produced from evidence quotes and findings and stored on `job.article` (`markdown` + `html`).
+
+Env: see repo-root `.env.example` (`OPENAI_API_KEY`, `COMPOSE_LLM_MODEL`, `PAPERQA_*`, `EVIDENCE_PACK_ROOT`, OpenAlex/GitHub keys).

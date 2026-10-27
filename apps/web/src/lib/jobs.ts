@@ -93,6 +93,34 @@ export type EvidencePackSummary = {
   quotes: EvidenceQuote[];
 };
 
+export type ArticleClaim = {
+  id: string;
+  text: string;
+  source_ids: string[];
+  quote_ids: string[];
+  supported: boolean;
+};
+
+export type ArticleSection = {
+  key: string;
+  heading?: string | null;
+  markdown: string;
+  claim_ids: string[];
+};
+
+export type ComposedArticle = {
+  title: string;
+  status: string;
+  method: string;
+  markdown: string;
+  html: string;
+  sections: ArticleSection[];
+  claims: ArticleClaim[];
+  cited_source_ids: string[];
+  skip_reason?: string | null;
+  refused_claims: string[];
+};
+
 export function sourceKey(source: SourceWork): string {
   return source.openalex_id || source.github_full_name || source.title;
 }
@@ -123,6 +151,7 @@ export type JobRecord = {
   sources: SourceWork[];
   screening?: ScreeningSummary | null;
   evidence?: EvidencePackSummary | null;
+  article?: ComposedArticle | null;
   article_id: string | null;
   error: string | null;
   created_at: string;
