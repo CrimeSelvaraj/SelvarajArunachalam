@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "cap:sync": "pnpm build && cap sync",
+    "cap:sync": "cap sync",
     "cap:ios": "pnpm cap:sync && cap open ios",
     "cap:android": "pnpm cap:sync && cap open android"
   },

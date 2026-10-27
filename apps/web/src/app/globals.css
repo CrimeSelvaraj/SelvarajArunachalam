@@ -973,6 +973,68 @@ mark {
   }
 }
 
+
+.gate {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: calc(24px + env(safe-area-inset-top)) 16px calc(32px + env(safe-area-inset-bottom));
+}
+
+.gate-card {
+  width: min(100%, 480px);
+  background: var(--paper-raised);
+  border: 1px solid var(--ink);
+  border-radius: 18px;
+  box-shadow: 6px 6px 0 var(--ink);
+  padding: 28px 22px 22px;
+}
+
+.gate-kicker {
+  margin: 0 0 8px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.gate-card .price {
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 3.4rem;
+  line-height: 0.95;
+  margin: 0 0 12px;
+}
+
+.gate-card > .btn.primary,
+.gate-card form > .btn.primary {
+  width: 100%;
+}
+
+.gate-card .notice,
+.gate-card .btn.quiet {
+  margin-top: 12px;
+}
+
+.gate-card .form-actions .btn {
+  flex: 1 1 160px;
+}
+
+.code-preview {
+  display: block;
+  margin-top: 10px;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 2rem;
+  letter-spacing: 0.28em;
+  color: var(--ink);
+}
+
+#paypal-buttons {
+  margin: 12px 0 16px;
+  min-height: 48px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

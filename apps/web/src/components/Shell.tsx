@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Boundary } from "@/components/Boundary";
+import { SessionWatch } from "@/components/SessionWatch";
 import { Notice } from "@/components/ui";
 import { features, featuresIn, groups, type Feature } from "@/features";
 
@@ -39,6 +40,7 @@ function BenchLink({
 
 export function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || "/";
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -77,8 +79,14 @@ export function Shell({ children }: { children: React.ReactNode }) {
     setMenuOpen(false);
   };
 
+  async function signOut() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.refresh();
+  }
+
   return (
     <div className="shell">
+      <SessionWatch />
       <a className="skip" href="#content">
         Skip to content
       </a>
@@ -176,6 +184,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
               </div>
             ) : null}
           </div>
+          <button type="button" className="btn quiet header-signout" onClick={() => void signOut()}>
+            Sign out
+          </button>
           <Link href="/" className="btn primary header-cta" onClick={closeAll}>
             New prompt
           </Link>
@@ -183,7 +194,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <main id="content" tabIndex={-1}>
           <Boundary resetKey={pathname}>{children}</Boundary>
         </main>
-        <footer className="colophon">Previews stay in this browser. ATOZ does not send a work order to a model host.</footer>
+        <footer className="colophon">Workshop files stay on this system. Sign-in and the one-dollar payment are checked with this site.</footer>
       </div>
     </div>
   );

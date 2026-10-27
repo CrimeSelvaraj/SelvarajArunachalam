@@ -21,6 +21,9 @@ build/
 .env.*.local
 !.env.example
 
+# Local sign-in, payment, and outbox records
+apps/web/data/
+
 # Editors / OS
 .DS_Store
 .idea/

@@ -11,41 +11,58 @@ Open a bench, run its action, and see a result in the browser. Portrait playback
 From the repo root, with [pnpm](https://pnpm.io) available:
 
 ```bash
-cd apps/web
 pnpm install
 pnpm dev
 ```
 
 Open http://localhost:3000
 
-Production build (also `npm run build` from the repo root):
+`pnpm dev` starts the Next.js app. Sign in with an email, then pay $1, before any bench is shown. The same build is what you point a domain at:
 
 ```bash
-cd apps/web
 pnpm build
+pnpm start
 ```
 
-The static site is written to `apps/web/out`.
+`pnpm start` listens on port 3000. Point the domain at that process (or at the host in front of it). There is no separate static export: sign-in, the payment, and the one-device rule need the server.
+
+## Sign in, $1, and one device
+
+Email is the account. The first system to sign in with that email gets the session. A desktop and a phone cannot stay signed in together. A second system does not receive the session. It is asked for a six-digit code. The code is emailed when `RESEND_API_KEY` and `EMAIL_FROM` are set. The same code can be texted when `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, and `TWILIO_FROM` are set; the challenge screen has a phone field for that. Entering the code moves the session and signs the previous system out.
+
+Access costs **$1.00 USD**, once per email.
+
+PayPal is sandbox unless `PAYPAL_ENV=live`. Set `PAYPAL_CLIENT_ID` and `PAYPAL_CLIENT_SECRET` from a sandbox app if you want the real PayPal button. This repo does not contain a live PayPal secret. When those two values are blank, the pay screen says so and **Record $1 paid** writes a local paid state (`paymentRef: "local-sandbox"`) for that email. Nothing is charged.
+
+`POST /api/paypal/webhook` is the replacement for that local state. It marks the email paid only after PayPal verifies a `PAYMENT.CAPTURE.COMPLETED` event for $1.00 USD. Until `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, and `PAYPAL_WEBHOOK_ID` are all set, the webhook answers 503 and does not change anyone’s access.
+
+Copy `.env.example` to `apps/web/.env.local` and fill only the values you have. Leave the rest blank.
+
+Without an email provider, the six-digit code is printed in the `pnpm dev` terminal and shown on the new device so the local challenge can be completed. That on-screen code is the stand-in, not proof of mailbox ownership. With Resend configured, the code is only in the email.
 
 ## Mobile
 
-iOS and Android are a Capacitor shell around that static site. The native projects live in `apps/web/ios` and `apps/web/android`. You need macOS with Xcode for iOS, or Android Studio for Android.
+iOS and Android are a Capacitor shell that loads this site, so the phone hits the same sign-in and payment. The native projects live in `apps/web/ios` and `apps/web/android`. You need macOS with Xcode for iOS, or Android Studio for Android.
 
 ```bash
-cd apps/web
-pnpm install
-pnpm cap:sync
+pnpm dev
+```
+
+In another terminal, point the shell at the running site and sync:
+
+```bash
+CAPACITOR_SERVER_URL=http://localhost:3000 pnpm cap:sync
 pnpm cap:ios       # opens Xcode
 pnpm cap:android   # opens Android Studio
 ```
 
-Run the ATOZ target on a simulator or a device from Xcode or Android Studio.
+Use `http://localhost:3000` on a simulator. A phone on the same network needs this computer’s LAN address, with `cleartext` already enabled for `http://` URLs. For a domain, set `CAPACITOR_SERVER_URL` to `https://your.domain` and sync again.
 
-A phone browser can also open the site full screen (Add to Home Screen). It is the same screens, sized for a thumb.
+A phone browser can also open http://localhost:3000 (or the domain) and use Add to Home Screen. It is the same screens.
 
 ## What these previews do not do
 
-Speech uses the device speech engine and, if you allow it, the microphone. Files you open in RevPDF stay in the browser. Nothing in these benches is sent to a model host.
+Speech uses the device speech engine and, if you allow it, the microphone. Files you open in RevPDF stay in the browser. Nothing in these benches is sent to a model host. Sign-in and the $1 payment are the exception: they are checked by this site’s server.
 
 - HeyGem plays a portrait and, when the device can, speaks the line. It does not render a video avatar.
 - OmniVoice stores a pitch and pace from your sample. It is not a neural voice clone.

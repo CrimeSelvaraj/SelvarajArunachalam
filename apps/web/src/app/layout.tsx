@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Outfit } from "next/font/google";
-import { Shell } from "@/components/Shell";
+import { AccessFrame } from "@/components/AccessFrame";
 import { StoreProvider } from "@/components/StoreProvider";
 import "./globals.css";
 
@@ -32,6 +32,8 @@ export const metadata: Metadata = {
   },
 };
 
+export const dynamic = "force-dynamic";
+
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
@@ -44,7 +46,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en" className={`${display.variable} ${sans.variable}`}>
       <body>
         <StoreProvider>
-          <Shell>{children}</Shell>
+          <AccessFrame>{children}</AccessFrame>
         </StoreProvider>
       </body>
     </html>
